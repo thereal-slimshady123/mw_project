@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BREATHEBEAT — Sonified Diaphragmatic Breathing in Raga Bhupali</title>
+  <meta name="description" content="BREATHEBEAT: Real-time Web Audio Synthesizer, 5-Stage Cognitive Fatigue Testing Module, and Clinical Cohort Analytics in Raga Bhupali.">
+  
+  <!-- Modern Typography: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body class="theme-dark">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-logo-glow">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12h2.5l2-5 3 10 3-10 2 5H22"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">BREATHEBEAT</span>
+          <span class="brand-tag">Raga Bhupali • Cognitive Restoration</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab active" data-view="experiment" id="tab-experiment">
+          <span class="tab-icon">🧪</span>
+          <span class="tab-text">Study Protocol</span>
+        </button>
+        <button class="nav-tab" data-view="synthesizer" id="tab-synthesizer">
+          <span class="tab-icon">🎛️</span>
+          <span class="tab-text">Audio Synthesizer</span>
+        </button>
+        <button class="nav-tab" data-view="dashboard" id="tab-dashboard">
+          <span class="tab-icon">📊</span>
+          <span class="tab-text">Cohort Dashboard (N=20)</span>
+        </button>
+        <button class="nav-tab" data-view="theory" id="tab-theory">
+          <span class="tab-icon">📜</span>
+          <span class="tab-text">Theory & Research</span>
+        </button>
+      </nav>
+
+      <div class="header-status">
+        <button class="audio-toggle-btn" id="header-audio-init" title="Initialize Web Audio API">
+          <span class="audio-dot"></span>
+          <span class="audio-label" id="audio-status-label">Enable Audio</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+    
+    <!-- VIEW 1: EXPERIMENT WORKFLOW (5 STAGES) -->
+    <section class="view-panel active" id="view-experiment">
+      <div class="experiment-container">
+        
+        <!-- Pre-trial Setup Card (Displayed when no session is active) -->
+        <div class="experiment-setup-card" id="exp-setup-card">
+          <div class="setup-header">
+            <span class="section-badge">CONTROLLED EXPERIMENTAL STUDY</span>
+            <h1>Evaluate Cognitive Fatigue & Restoration</h1>
+            <p class="setup-subtitle">
+              Evaluating diaphragmatic 4-2-6 breathing across three counterbalanced arms:
+              <strong>Silent Rest (Control)</strong>, <strong>Spoken Guide (Baseline)</strong>, and 
+              <strong>BREATHEBEAT Engine (Experimental)</strong>.
+            </p>
+          </div>
+
+          <div class="setup-grid">
+            <div class="setup-field">
+              <label for="participant-id">Participant Identifier</label>
+              <input type="text" id="participant-id" class="input-text" value="BB-2024-LIVE" placeholder="e.g. BB-2024-021">
+            </div>
+
+            <div class="setup-field">
+              <label for="condition-arm">Assigned Audio Condition (Arm)</label>
+              <select id="condition-arm" class="input-select">
+                <option value="breathebeat" selected>BREATHEBEAT Engine (Raga Bhupali Meend & Drone)</option>
+                <option value="spoken">Spoken Guide (Synthetic Voice Pacing)</option>
+                <option value="silent">Silent Rest (Tibetan Chime Control)</option>
+                <option value="random">Randomize Arm (1:1:1 Clinical Allocation)</option>
+              </select>
+            </div>
+
+            <div class="setup-field">
+              <label for="music-familiarity-intake">Prior Indian Classical Music Familiarity (1-5)</label>
+              <div class="intake-rating-pills" id="intake-rating-pills">
+                <button type="button" class="intake-pill" data-val="1">1 (None)</button>
+                <button type="button" class="intake-pill" data-val="2">2 (Rare)</button>
+                <button type="button" class="intake-pill active" data-val="3">3 (Moderate)</button>
+                <button type="button" class="intake-pill" data-val="4">4 (High)</button>
+                <button type="button" class="intake-pill" data-val="5">5 (Trained)</button>
+              </div>
+              <input type="hidden" id="music-familiarity-val" value="3">
+            </div>
+
+            <div class="setup-field">
+              <label for="protocol-mode">Evaluation Pace / Protocol Duration</label>
+              <select id="protocol-mode" class="input-select">
+                <option value="demo" selected>⚡ Fast Evaluation Mode (~2 mins total • 8 trials/stage)</option>
+                <option value="full">⏱ Full Research Protocol (14 mins total • 24 trials/stage)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Protocol Timeline Overview -->
+          <div class="protocol-timeline-preview">
+            <h3 class="preview-title">5-Stage Counterbalanced Protocol:</h3>
+            <div class="timeline-steps">
+              <div class="tl-step">
+                <span class="tl-num">1</span>
+                <span class="tl-name">Baseline Check</span>
+                <span class="tl-meta">Stroop RT & Accuracy</span>
+              </div>
+              <div class="tl-arrow">→</div>
+              <div class="tl-step">
+                <span class="tl-num">2</span>
+                <span class="tl-name">Fatigue Inducer</span>
+                <span class="tl-meta">Rapid Math & Memory Strain</span>
+              </div>
+              <div class="tl-arrow">→</div>
+              <div class="tl-step">
+                <span class="tl-num">3</span>
+                <span class="tl-name">Post-Fatigue Check</span>
+                <span class="tl-meta">Quantify Cognitive Drop</span>
+              </div>
+              <div class="tl-arrow">→</div>
+              <div class="tl-step highlight">
+                <span class="tl-num">4</span>
+                <span class="tl-name">Guided Rest Break</span>
+                <span class="tl-meta">4-2-6 Diaphragmatic Breath</span>
+              </div>
+              <div class="tl-arrow">→</div>
+              <div class="tl-step">
+                <span class="tl-num">5</span>
+                <span class="tl-name">Recovery Check</span>
+                <span class="tl-meta">Cognitive Restoration %</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="setup-cta">
+            <button class="btn-primary-glow" id="btn-start-protocol">
+              <span>Begin Guided Experiment Session</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Session Active View (Shown during the test) -->
+        <div class="session-active-card hidden" id="session-active-card">
+          <!-- Session Stepper Header -->
+          <div class="stepper-bar">
+            <div class="stepper-item" data-stage="1" id="step-1">
+              <span class="step-circle">1</span>
+              <span class="step-label">Baseline Stroop</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-item" data-stage="2" id="step-2">
+              <span class="step-circle">2</span>
+              <span class="step-label">Fatigue Inducer</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-item" data-stage="3" id="step-3">
+              <span class="step-circle">3</span>
+              <span class="step-label">Post-Fatigue Stroop</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-item" data-stage="4" id="step-4">
+              <span class="step-circle">4</span>
+              <span class="step-label">4-2-6 Rest Break</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-item" data-stage="5" id="step-5">
+              <span class="step-circle">5</span>
+              <span class="step-label">Recovery Stroop</span>
+            </div>
+            <div class="stepper-connector"></div>
+            <div class="stepper-item" data-stage="6" id="step-6">
+              <span class="step-circle">6</span>
+              <span class="step-label">NASA-TLX & Report</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Stage Stage Area -->
+          <div class="stage-mount-area" id="stage-mount-area">
+            <!-- Injected via JavaScript -->
+          </div>
+
+          <!-- Rest Break Stage View (Dedicated Mount inside Stage Area when Stage 4 is active) -->
+          <div class="rest-break-container hidden" id="rest-break-container">
+            <div class="rest-header">
+              <div class="rest-badge" id="rest-arm-badge">Arm: BREATHEBEAT Engine (Raga Bhupali)</div>
+              <h2 id="rest-phase-title">Inhale (Arohana)</h2>
+              <p id="rest-phase-sub" class="rest-sub">4s Diaphragmatic Inhale — Sa → Re → Ga → Pa → Dha → Sa′</p>
+            </div>
+
+            <div class="rest-visualizer-canvas-wrap">
+              <canvas id="breath-canvas" width="560" height="420"></canvas>
+            </div>
+
+            <div class="rest-controls-footer">
+              <div class="rest-timer-box">
+                <span class="rest-timer-label">STAGE 4 REMAINING</span>
+                <span class="rest-timer-digits" id="rest-stage-countdown">45s</span>
+              </div>
+              <div class="rest-action-box">
+                <button class="btn-secondary" id="btn-skip-rest-break">Skip to Stage 5 (Demo Early Finish)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Session Results Summary Modal / Card (Stage 6) -->
+          <div class="session-results-card hidden" id="session-results-card">
+            <div class="results-header">
+              <div class="congrats-badge">PROTOCOL COMPLETED</div>
+              <h2>Cognitive Restoration Analysis</h2>
+              <p class="results-subtitle">Individual performance metrics calculated via Table 1 Recovery Formula</p>
+            </div>
+
+            <div class="kpi-score-hero">
+              <div class="hero-recovery-box">
+                <span class="hero-label">COGNITIVE RECOVERY SCORE</span>
+                <span class="hero-val" id="res-recovery-score">--%</span>
+                <span class="hero-formula">Formula: (RT_fatigue - RT_recovery) / (RT_fatigue - RT_baseline) × 100%</span>
+              </div>
+              <div class="hero-effort-box">
+                <span class="hero-label">PERCEIVED EFFORT (NASA-TLX)</span>
+                <span class="hero-val" id="res-effort-score">-- / 100</span>
+                <span class="hero-note" id="res-effort-verdict">Optimal Low-Strain State</span>
+              </div>
+            </div>
+
+            <div class="results-metrics-grid">
+              <div class="metric-card">
+                <span class="m-card-title">1. Baseline Stroop RT</span>
+                <span class="m-card-val" id="res-baseline-rt">-- ms</span>
+                <span class="m-card-sub" id="res-baseline-acc">Accuracy: --%</span>
+              </div>
+              <div class="metric-card alert">
+                <span class="m-card-title">2. Post-Fatigue RT</span>
+                <span class="m-card-val" id="res-fatigue-rt">-- ms</span>
+                <span class="m-card-sub" id="res-fatigue-drop">RT Slowed by: +-- ms</span>
+              </div>
+              <div class="metric-card success">
+                <span class="m-card-title">3. Post-Break Recovery RT</span>
+                <span class="m-card-val" id="res-recovery-rt">-- ms</span>
+                <span class="m-card-sub" id="res-recovery-gain">RT Restored by: --- ms</span>
+              </div>
+            </div>
+
+            <div class="results-actions">
+              <button class="btn-primary" id="btn-add-to-cohort">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                <span>Save & Merge into 20-Student Cohort</span>
+              </button>
+              <button class="btn-secondary" id="btn-view-cohort-dashboard">
+                <span>View Full Study Dashboard & ANOVA</span>
+              </button>
+              <button class="btn-ghost" id="btn-restart-protocol">
+                <span>Start New Participant Session</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: REAL-TIME WEB AUDIO SYNTHESIZER LAB (DELIVERABLE 2) -->
+    <section class="view-panel" id="view-synthesizer">
+      <div class="synth-lab-container">
+        
+        <div class="synth-lab-header">
+          <div>
+            <span class="section-badge">DELIVERABLE 2: REAL-TIME WEB AUDIO API SYNTHESIZER</span>
+            <h1>Indian Classical Sound Synthesis Engine</h1>
+            <p class="synth-subtitle">
+              Generates continuous artifact-free pitch sweeps (<em>Meend</em>) in <strong>Raga Bhupali</strong> and rich multi-harmonic 
+              <strong>Tanpura drone</strong> (<em>Sa–Pa</em>) calibrated to diaphragmatic 4-2-6 breathing ratios.
+            </p>
+          </div>
+          <div class="synth-quick-status">
+            <span class="status-pill active" id="synth-status-indicator">Engine Ready</span>
+          </div>
+        </div>
+
+        <div class="synth-grid">
+          
+          <!-- Column 1: Tanpura Drone Generator & Raga Scale -->
+          <div class="synth-card">
+            <div class="card-head">
+              <h3>1. Continuous Tanpura Drone (Sa–Pa)</h3>
+              <span class="card-chip">Multi-String Overtone Model</span>
+            </div>
+            <p class="card-desc">
+              Synthesizes four resonant acoustic strings (Pa, Sa', Sa' detuned, Kharaj Sa) with bridge jawari harmonics and wooden acoustic low-pass filtering.
+            </p>
+
+            <div class="synth-control-row">
+              <button class="btn-synth-toggle" id="btn-toggle-drone">
+                <span class="play-icon">▶</span>
+                <span id="btn-drone-label">Start Tanpura Drone</span>
+              </button>
+              <div class="vol-control">
+                <label for="drone-vol">Drone Volume</label>
+                <input type="range" id="drone-vol" min="0" max="1" step="0.05" value="0.35">
+              </div>
+            </div>
+
+            <!-- Sargam Scale Keyboard / Audition Pad -->
+            <div class="sargam-keyboard-section">
+              <h4>Raga Bhupali Audava Pentatonic Scale (Audition Notes):</h4>
+              <p class="scale-note-explanation">Skips tension-bearing notes <em>Ma</em> and <em>Ni</em>. Dominant resting note (Vadi) is <strong>Ga</strong>.</p>
+              
+              <div class="sargam-keys">
+                <button class="sargam-key" data-note="Sa">
+                  <span class="key-sargam">Sa</span>
+                  <span class="key-western">C4 (261.6 Hz)</span>
+                </button>
+                <button class="sargam-key" data-note="Re">
+                  <span class="key-sargam">Re</span>
+                  <span class="key-western">D4 (293.7 Hz)</span>
+                </button>
+                <button class="sargam-key vadi" data-note="Ga">
+                  <span class="vadi-badge">Vadi</span>
+                  <span class="key-sargam">Ga</span>
+                  <span class="key-western">E4 (329.6 Hz)</span>
+                </button>
+                <button class="sargam-key" data-note="Pa">
+                  <span class="key-sargam">Pa</span>
+                  <span class="key-western">G4 (392.0 Hz)</span>
+                </button>
+                <button class="sargam-key" data-note="Dha">
+                  <span class="key-sargam">Dha</span>
+                  <span class="key-western">A4 (440.0 Hz)</span>
+                </button>
+                <button class="sargam-key" data-note="SaUpper">
+                  <span class="key-sargam">Sa′</span>
+                  <span class="key-western">C5 (523.3 Hz)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: Meend Glide Pitch Controller & 4-2-6 Looper -->
+          <div class="synth-card">
+            <div class="card-head">
+              <h3>2. Continuous Pitch Sweeps (Meend)</h3>
+              <span class="card-chip">Exponential Frequency Glides</span>
+            </div>
+            <p class="card-desc">
+              Directly translates breathing physiology into organic microtonal slides without discrete stepping, swelling during inhalation and tapering during exhalation.
+            </p>
+
+            <div class="meend-trigger-grid">
+              <button class="btn-meend-action inhale" id="btn-trigger-inhale">
+                <span class="meend-phase">INHALE (4s)</span>
+                <span class="meend-sargam">Arohana: Sa → Re → Ga → Pa → Dha → Sa′</span>
+                <span class="meend-type">Ascending Swell</span>
+              </button>
+
+              <button class="btn-meend-action hold" id="btn-trigger-hold">
+                <span class="meend-phase">HOLD (2s)</span>
+                <span class="meend-sargam">Kumbhaka: Ga (Vadi)</span>
+                <span class="meend-type">Sustained Dominant Anchor</span>
+              </button>
+
+              <button class="btn-meend-action exhale" id="btn-trigger-exhale">
+                <span class="meend-phase">EXHALE (6s)</span>
+                <span class="meend-sargam">Avarohana: Sa′ → Dha → Pa → Ga → Re → Sa</span>
+                <span class="meend-type">Descending Taper</span>
+              </button>
+            </div>
+
+            <div class="autonomous-loop-panel">
+              <button class="btn-primary-glow" id="btn-toggle-auto-loop">
+                <span>Start Autonomous 4-2-6 Breathing Audio Loop</span>
+              </button>
+              <div class="vol-control">
+                <label for="meend-vol">Meend Lead Volume</label>
+                <input type="range" id="meend-vol" min="0" max="1" step="0.05" value="0.65">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Real-Time Audio Oscilloscope & Waveform Canvas -->
+        <div class="synth-visualizer-card">
+          <div class="vis-header">
+            <div>
+              <h3>Real-Time Web Audio Oscilloscope & Frequency Spectrum</h3>
+              <p class="vis-sub">Visualizing artifact-free continuous Meend curve & Tanpura harmonic overtone series</p>
+            </div>
+            <div class="vis-mode-switch">
+              <button class="vis-switch-btn active" id="btn-vis-wave">Waveform</button>
+              <button class="vis-switch-btn" id="btn-vis-freq">Frequency Spectrum</button>
+            </div>
+          </div>
+          <div class="canvas-box">
+            <canvas id="synth-scope-canvas" width="980" height="220"></canvas>
+          </div>
+        </div>
+
+        <!-- 3 Comparison Arms Audition Suite -->
+        <div class="arms-comparison-suite">
+          <div class="suite-header">
+            <h3>Three Comparison Arms Auditory Laboratory</h3>
+            <p class="suite-sub">Compare the three experimental conditions directly to test subjective cognitive load</p>
+          </div>
+          <div class="arms-card-deck">
+            <div class="arm-box" id="arm-box-silent">
+              <h4>Arm 1: Silent Rest (Control)</h4>
+              <p>Quiet rest with gentle Tibetan singing bowl chimes marking start and end.</p>
+              <button class="btn-audition" id="btn-audition-silent">Audition Tibetan Singing Bowl</button>
+            </div>
+
+            <div class="arm-box" id="arm-box-spoken">
+              <h4>Arm 2: Spoken Guide (Baseline)</h4>
+              <p>Calm synthetic voice counting pace markers ("Inhale 2, 3, 4; Hold 2; Exhale 2, 3, 4, 5, 6").</p>
+              <button class="btn-audition" id="btn-audition-spoken">Audition Voice Prompt</button>
+            </div>
+
+            <div class="arm-box highlight" id="arm-box-breathebeat">
+              <span class="featured-badge">PROPOSED SYSTEM</span>
+              <h4>Arm 3: BREATHEBEAT Engine (Experimental)</h4>
+              <p>Fluid melodic glides in Raga Bhupali set over a warm continuous Tanpura drone.</p>
+              <button class="btn-audition-primary" id="btn-audition-breathebeat">Audition Full Bhupali Breath</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 3: DATA DASHBOARD & STATISTICAL ANALYSIS (DELIVERABLE 3) -->
+    <section class="view-panel" id="view-dashboard">
+      <div class="dashboard-container">
+        
+        <div class="dashboard-header">
+          <div>
+            <span class="section-badge">DELIVERABLE 3: CLINICAL DATA DASHBOARD & RECOVERY COMPARISONS</span>
+            <h1>Cohort Study Analytics (N = 20 Students)</h1>
+            <p class="dash-subtitle">
+              Evaluating cognitive recovery and perceived mental effort across three test conditions with one-way ANOVA and pairwise post-hoc tests.
+            </p>
+          </div>
+          <div class="dash-export-actions">
+            <button class="btn-export" id="btn-export-csv">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>Export CSV</span>
+            </button>
+            <button class="btn-export" id="btn-export-json">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>Export JSON</span>
+            </button>
+            <button class="btn-ghost-sm" id="btn-reset-cohort">Reset Cohort</button>
+          </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="dash-kpi-grid">
+          <div class="kpi-card breathebeat">
+            <span class="kpi-tag">EXPERIMENTAL ARM</span>
+            <h3>BREATHEBEAT Engine</h3>
+            <div class="kpi-main-stat" id="kpi-bb-recovery">91.4%</div>
+            <span class="kpi-label">Mean Cognitive Recovery Score</span>
+            <div class="kpi-sub-stats">
+              <span>NASA-TLX Effort: <strong id="kpi-bb-effort">17.3</strong>/100</span>
+              <span>Sample: N = <span id="kpi-bb-n">6</span></span>
+            </div>
+          </div>
+
+          <div class="kpi-card spoken">
+            <span class="kpi-tag">BASELINE ARM</span>
+            <h3>Spoken Guide</h3>
+            <div class="kpi-main-stat" id="kpi-spoken-recovery">57.8%</div>
+            <span class="kpi-label">Mean Cognitive Recovery Score</span>
+            <div class="kpi-sub-stats">
+              <span>NASA-TLX Effort: <strong id="kpi-spoken-effort">60.3</strong>/100</span>
+              <span>Sample: N = <span id="kpi-spoken-n">7</span></span>
+            </div>
+          </div>
+
+          <div class="kpi-card silent">
+            <span class="kpi-tag">CONTROL ARM</span>
+            <h3>Silent Rest</h3>
+            <div class="kpi-main-stat" id="kpi-silent-recovery">42.4%</div>
+            <span class="kpi-label">Mean Cognitive Recovery Score</span>
+            <div class="kpi-sub-stats">
+              <span>NASA-TLX Effort: <strong id="kpi-silent-effort">42.9</strong>/100</span>
+              <span>Sample: N = <span id="kpi-silent-n">7</span></span>
+            </div>
+          </div>
+
+          <div class="kpi-card anova">
+            <span class="kpi-tag">ONE-WAY ANOVA</span>
+            <h3>Statistical Significance</h3>
+            <div class="kpi-main-stat highlight" id="kpi-anova-p">p &lt; 0.001</div>
+            <span class="kpi-label">F(2, 17) = <span id="kpi-anova-f">34.82</span></span>
+            <div class="kpi-sub-stats">
+              <span>Cohen's d: <strong id="kpi-cohens-d">1.94</strong> (Large)</span>
+              <span class="sig-badge">H1 Confirmed</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Charts Grid -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>Cognitive Recovery Score (%) by Comparison Arm</h4>
+              <span class="chart-formula">Recovery = (RT_fatigue - RT_recovery) / (RT_fatigue - RT_baseline) × 100%</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-recovery"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>Reaction Time Trajectory: Baseline → Fatigue → Recovery</h4>
+              <span class="chart-formula">Mean Reaction Time in ms (Lower is Faster Processing)</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-trajectory"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>Perceived Cognitive Effort (NASA-TLX Ease/Effort Survey)</h4>
+              <span class="chart-formula">Lower Score = Less Mental Strain & Counting Fatigue</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-effort"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h4>Indian Classical Familiarity vs Recovery Score</h4>
+              <span class="chart-formula">Testing Universal Efficacy vs Cultural Familiarity Bias</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-familiarity"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANOVA Statistical Summary Table -->
+        <div class="anova-table-card">
+          <div class="card-head">
+            <h3>One-Way Analysis of Variance (ANOVA) Summary</h3>
+            <span class="card-chip success">Statistically Significant (p &lt; 0.05)</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Source of Variation</th>
+                  <th>Sum of Squares (SS)</th>
+                  <th>Degrees of Freedom (df)</th>
+                  <th>Mean Square (MS)</th>
+                  <th>F-Statistic</th>
+                  <th>p-Value</th>
+                  <th>Significance</th>
+                </tr>
+              </thead>
+              <tbody id="anova-table-body">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <div class="anova-footnotes">
+            <p><strong>Pairwise Post-Hoc Comparisons:</strong> BREATHEBEAT vs Spoken Guide: Cohen's d = 1.94 (p &lt; 0.001); BREATHEBEAT vs Silent Rest: Cohen's d = 2.45 (p &lt; 0.001). Melodic glides in Raga Bhupali demonstrate an objective, statistically meaningful advantage over silence and vocal pacing.</p>
+          </div>
+        </div>
+
+        <!-- Granular Cohort Data Table -->
+        <div class="cohort-table-card">
+          <div class="table-header-row">
+            <div>
+              <h3>Participant Level Experimental Telemetry</h3>
+              <p class="table-sub">Raw millisecond-accurate timing logs and computed indicators for all cohort participants</p>
+            </div>
+            <div class="table-filters">
+              <input type="text" id="table-search" placeholder="Search participant..." class="input-search">
+              <select id="filter-arm" class="input-select-sm">
+                <option value="all">All Arms (20)</option>
+                <option value="breathebeat">BREATHEBEAT Engine</option>
+                <option value="spoken">Spoken Guide</option>
+                <option value="silent">Silent Rest</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="cohort-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Arm</th>
+                  <th>Familiarity</th>
+                  <th>Baseline RT</th>
+                  <th>Fatigue RT</th>
+                  <th>Recovery RT</th>
+                  <th>Recovery Score</th>
+                  <th>NASA-TLX Effort</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="cohort-table-body">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 4: THEORY, MUSICAL ANATOMY & TEAM CREDITS -->
+    <section class="view-panel" id="view-theory">
+      <div class="theory-container">
+        
+        <div class="theory-hero">
+          <span class="section-badge">MUSIC WORKSHOP PROJECT PROPOSAL</span>
+          <h1>BREATHEBEAT: Melodic Audio Sonification for Cognitive Fatigue</h1>
+          
+          <div class="team-credits-card">
+            <h3>Research & Engineering Team:</h3>
+            <div class="team-grid">
+              <div class="team-member">
+                <span class="member-name">Sri Harshit K</span>
+                <span class="member-id">Roll: 2024102022</span>
+              </div>
+              <div class="team-member highlight">
+                <span class="member-name">Parth Dhodapkar</span>
+                <span class="member-id">Roll: 2024111009</span>
+              </div>
+              <div class="team-member">
+                <span class="member-name">Atharva Kulkarni</span>
+                <span class="member-id">Roll: 2023101072</span>
+              </div>
+            </div>
+            <div class="course-meta">Semester 5 • Music Workshop • Project Platform</div>
+          </div>
+        </div>
+
+        <div class="theory-sections-grid">
+          
+          <div class="theory-article">
+            <h2>1. Motivation & Context</h2>
+            <p>
+              Intense mental work quickly burns through our attention spans and slows our reaction times. Most people deal with this by taking short screen breaks or resting quietly, but these resets often fail to actually restore cognitive clarity.
+            </p>
+            <p>
+              While guided breathing and mindfulness apps attempt to solve this, their repetitive synthetic voices and robotic counts can easily become another cognitive distraction.
+            </p>
+            <p>
+              <strong>BREATHEBEAT</strong> explores a more intuitive alternative: mapping structured breathing patterns onto melodic audio synthesized in real time. Rooted in Indian classical music, the system translates paced diaphragmatic breathing directly into the organic glides of <strong>Raga Bhupali</strong>.
+            </p>
+          </div>
+
+          <div class="theory-article">
+            <h2>2. Why Raga Bhupali Works</h2>
+            <div class="anatomy-list">
+              <div class="anatomy-item">
+                <h4>Clean Pentatonic Scale (Audava):</h4>
+                <p>By using only five notes (<em>Sa, Re, Ga, Pa, Dha</em>) and skipping tension-bearing tones like <em>Ma</em> and <em>Ni</em>, the raga avoids unresolved dissonance. Every note harmonizes smoothly with the drone.</p>
+              </div>
+              <div class="anatomy-item">
+                <h4>Mirrored Contours:</h4>
+                <p>The ascent (<em>Arohana</em>) and descent (<em>Avarohana</em>) mirror each other identically, creating a smooth arc that naturally mimics the expansion and contraction of the chest.</p>
+              </div>
+              <div class="anatomy-item">
+                <h4>Natural Resting Note (Vadi):</h4>
+                <p>The raga's primary emphasis note (<em>Vadi</em>) is <strong>Ga</strong>, which matches the pitch held during the breath retention (<em>Kumbhaka</em>) phase, providing a stable auditory center.</p>
+              </div>
+              <div class="anatomy-item">
+                <h4>Naturally Calming Character:</h4>
+                <p>Traditionally associated with calm, reflective, and meditative settings, Bhupali avoids sharp or agitated melodic turns that could raise cognitive arousal.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="theory-article">
+            <h2>3. Direct Audio-to-Breath Mapping (4-2-6 Ratio)</h2>
+            <div class="mapping-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Breath Phase</th>
+                    <th>Duration</th>
+                    <th>Classical Svara Movement</th>
+                    <th>Acoustic Physiology</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Inhale (Puraka)</strong></td>
+                    <td>4 seconds</td>
+                    <td>Arohana: <code>Sa → Re → Ga → Pa → Dha → Sa′</code></td>
+                    <td>Ascending pitch sweep with swelling volume to signal air intake naturally.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Hold (Kumbhaka)</strong></td>
+                    <td>2 seconds</td>
+                    <td>Vadi Note: <code>Ga (E4)</code> sustained</td>
+                    <td>Pitch pauses and sustains steadily on dominant root over drone; anchors retention without tension.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Exhale (Rechaka)</strong></td>
+                    <td>6 seconds</td>
+                    <td>Avarohana: <code>Sa′ → Dha → Pa → Ga → Re → Sa</code></td>
+                    <td>Gentle descending glide tapering in volume to prompt complete, relaxed release and vagal nerve tone.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="theory-article">
+            <h2>4. Metrics & Evaluation Methodology</h2>
+            <p>To keep our findings clear and actionable, the study narrows evaluation to three core indicators:</p>
+            <ul class="theory-bullets">
+              <li>
+                <strong>1. Cognitive Recovery Score:</strong>
+                <code>Recovery = (X_fatigue - X_recovery) / (X_fatigue - X_baseline) × 100%</code>
+                Derived from pre- and post-break Stroop reaction times (RT in ms) and accuracy (%). A score near 100% reflects complete return to baseline capability.
+              </li>
+              <li>
+                <strong>2. Perceived Effort:</strong>
+                Measures how mentally demanding or distracting the breathing condition felt, captured via a quick post-session NASA-TLX ease/effort survey.
+              </li>
+              <li>
+                <strong>3. Musical Familiarity:</strong>
+                Brief intake rating (1–5) of prior exposure to Indian classical music to verify whether calming impact is universal.
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
