@@ -14,8 +14,8 @@ export class FatigueInducer {
     this.timerId = null;
     this.questionTimerId = null;
     this.timeRemaining = this.durationSeconds;
-    this.questionTimeLimit = 4.0; // 4s per problem
-    this.questionTimeRemaining = 4.0;
+    this.questionTimeLimit = 6.0; // 6s per problem (comfortable & accessible)
+    this.questionTimeRemaining = 6.0;
 
     this.currentProblem = null;
     this.questionStartTime = 0;
@@ -24,50 +24,67 @@ export class FatigueInducer {
   }
 
   generateProblem() {
-    const types = ['dual_op', 'multiply_sub', 'divide_add', 'modular'];
+    const types = ['add', 'sub', 'mult', 'div'];
     const type = types[Math.floor(Math.random() * types.length)];
     let expr = '';
     let answer = 0;
 
-    if (type === 'dual_op') {
-      const a = Math.floor(Math.random() * 80) + 20;
-      const b = Math.floor(Math.random() * 40) + 10;
-      const c = Math.floor(Math.random() * 50) + 15;
-      const op = Math.random() > 0.5 ? '+' : '-';
-      if (op === '+') {
-        expr = `${a} + ${b} - ${c}`;
-        answer = a + b - c;
+    if (type === 'add') {
+      // Simple 1-digit + 1-digit or simple 2-digit + 1-digit (e.g., 8 + 7, 14 + 8, 23 + 12)
+      const mode = Math.random();
+      if (mode < 0.5) {
+        const a = Math.floor(Math.random() * 9) + 4; // 4 to 12
+        const b = Math.floor(Math.random() * 9) + 3; // 3 to 11
+        expr = `${a} + ${b}`;
+        answer = a + b;
       } else {
-        expr = `${a} - ${b} + ${c}`;
-        answer = a - b + c;
+        const a = Math.floor(Math.random() * 30) + 11; // 11 to 40
+        const b = Math.floor(Math.random() * 9) + 2;   // 2 to 10
+        expr = `${a} + ${b}`;
+        answer = a + b;
       }
-    } else if (type === 'multiply_sub') {
-      const m1 = Math.floor(Math.random() * 12) + 6;
-      const m2 = Math.floor(Math.random() * 9) + 4;
-      const sub = Math.floor(Math.random() * 25) + 8;
-      expr = `(${m1} × ${m2}) - ${sub}`;
-      answer = (m1 * m2) - sub;
-    } else if (type === 'divide_add') {
-      const divisor = Math.floor(Math.random() * 6) + 3;
-      const quotient = Math.floor(Math.random() * 12) + 5;
-      const dividend = divisor * quotient;
-      const add = Math.floor(Math.random() * 45) + 15;
-      expr = `(${dividend} ÷ ${divisor}) + ${add}`;
-      answer = quotient + add;
+    } else if (type === 'sub') {
+      // Simple subtraction (e.g., 16 - 7, 25 - 9, 34 - 12)
+      const b = Math.floor(Math.random() * 9) + 3;  // 3 to 11
+      const answerVal = Math.floor(Math.random() * 15) + 4; // 4 to 18
+      const a = answerVal + b;
+      expr = `${a} - ${b}`;
+      answer = answerVal;
+    } else if (type === 'mult') {
+      // Basic single-digit multiplication (e.g., 6 × 4, 7 × 3, 8 × 5, 9 × 4)
+      const a = Math.floor(Math.random() * 8) + 2; // 2 to 9
+      const b = Math.floor(Math.random() * 8) + 2; // 2 to 9
+      expr = `${a} × ${b}`;
+      answer = a * b;
     } else {
-      const a = Math.floor(Math.random() * 9) + 4;
-      const b = Math.floor(Math.random() * 8) + 3;
-      const c = Math.floor(Math.random() * 7) + 3;
-      const d = Math.floor(Math.random() * 5) + 2;
-      expr = `(${a} × ${b}) - (${c} × ${d})`;
-      answer = (a * b) - (c * d);
+      // Simple single-digit division with clean integer result (e.g., 24 ÷ 4 = 6, 35 ÷ 5 = 7)
+      const divisor = Math.floor(Math.random() * 7) + 2; // 2 to 8
+      const quotient = Math.floor(Math.random() * 8) + 2; // 2 to 9
+      const dividend = divisor * quotient;
+      expr = `${dividend} ÷ ${divisor}`;
+      answer = quotient;
     }
 
-    // Generate 4 plausible choices
+    // Generate 4 plausible distinct choices
     const choices = new Set([answer]);
+    const offsets = [-2, -1, 1, 2, -3, 3, -4, 4, 10, -10];
+    
+    // Shuffle offsets
+    offsets.sort(() => Math.random() - 0.5);
+
+    for (const offset of offsets) {
+      const candidate = answer + offset;
+      if (candidate >= 0 && candidate !== answer) {
+        choices.add(candidate);
+      }
+      if (choices.size >= 4) break;
+    }
+
+    // Fallback if needed
+    let fallback = 1;
     while (choices.size < 4) {
-      const delta = (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 12) + 1);
-      choices.add(answer + delta);
+      choices.add(answer + fallback);
+      fallback++;
     }
 
     const shuffledChoices = Array.from(choices).sort(() => Math.random() - 0.5);

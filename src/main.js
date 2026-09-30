@@ -290,8 +290,8 @@ class BreatheBeatApp {
     mount.innerHTML = `
       <div class="stage-intro-card">
         <span class="section-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">STAGE 2 OF 5 (FATIGUE INDUCER)</span>
-        <h2>Rapid Working Memory & Logic Stressor</h2>
-        <p>Solve high-speed multi-operation math puzzles under rapid time pressure (4s per question). Designed to intentionally deplete working memory and induce focus fatigue.</p>
+        <h2>Rapid Arithmetic & Working Memory Stressor</h2>
+        <p>Answer rapid arithmetic questions (addition, subtraction, multiplication, and clean division). Designed to induce cognitive load while keeping calculations intuitive.</p>
         <button class="btn-primary-glow" id="btn-begin-s2" style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff;">Begin Fatigue Stressor (${durationSec}s)</button>
       </div>
     `;
