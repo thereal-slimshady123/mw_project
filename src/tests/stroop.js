@@ -9,8 +9,7 @@ export class StroopTask {
   constructor(options = {}) {
     this.container = options.container;
     this.onComplete = options.onComplete || (() => {});
-    this.isDemoMode = options.isDemoMode || false;
-    this.totalTrials = options.totalTrials || (this.isDemoMode ? 8 : 24);
+    this.totalTrials = options.totalTrials || 6;
 
     this.colors = [
       { name: 'RED', hex: '#ef4444', key: 'R' },
@@ -29,25 +28,26 @@ export class StroopTask {
   }
 
   generateTrialSequence() {
-    const trials = [];
-    for (let i = 0; i < this.totalTrials; i++) {
-      const isCongruent = Math.random() < 0.5;
+    const half = Math.floor(this.totalTrials / 2);
+    const conditions = [];
+    for (let i = 0; i < half; i++) conditions.push(true);
+    for (let i = half; i < this.totalTrials; i++) conditions.push(false);
+    conditions.sort(() => Math.random() - 0.5);
+
+    return conditions.map(isCongruent => {
       const colorObj = this.colors[Math.floor(Math.random() * this.colors.length)];
       let wordName = colorObj.name;
-
       if (!isCongruent) {
         const otherColors = this.colors.filter(c => c.name !== colorObj.name);
         wordName = otherColors[Math.floor(Math.random() * otherColors.length)].name;
       }
-
-      trials.push({
+      return {
         word: wordName,
         inkColor: colorObj.name,
         inkHex: colorObj.hex,
         isCongruent
-      });
-    }
-    return trials;
+      };
+    });
   }
 
   start() {
