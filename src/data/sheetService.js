@@ -1,37 +1,41 @@
 /**
  * BREATHEBEAT — Google Sheets & Excel Export Service
- * Automatically sends test results to a connected Google Sheet (Excel) webhook,
- * and maintains a resilient local storage database of all participant runs.
+ * Submits strictly the calculation inputs and the resulting calculated metrics.
  */
 
 // Replace this with your Google Apps Script Web App URL once deployed
 export const GOOGLE_SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzxIY84it3vqwTjyubpKCNkkl4trzmrV-mtZrHi-L9_MazlciuSSQCl8q97MHHJtkXJ/exec';
 
 /**
- * Submits session data to Google Sheet webhook and local storage
+ * Submits strictly the inputs that calculate metrics, plus the metrics themselves.
  */
 export async function recordStudySession(sessionData) {
-  const timestamp = new Date().toISOString();
-  const participantId = sessionData.participantId || ('BB-' + Math.floor(1000 + Math.random() * 9000));
-
   const payload = {
-    timestamp,
-    participantId,
-    baselineMeanRT: sessionData.baselineRT || 0,
-    baselineCongruentRT: sessionData.baselineCongruentRT || 0,
-    baselineIncongruentRT: sessionData.baselineIncongruentRT || 0,
-    baselineInterference: sessionData.baselineInterference || 0,
-    baselineAccuracy: sessionData.baselineAcc || 100,
+    // 1. Exact Column Headers matching Row 1 of Google Sheet
+    Roll_No: String(sessionData.rollNumber || ''),
+    Baseline_RT: Math.round(sessionData.baselineRT || 0),
+    Recovery_RT: Math.round(sessionData.recoveryRT || 0),
+    Speedup_ms: Math.round(sessionData.stroopSpeedup || 0),
+    Pre_Math_Acc: Math.round(sessionData.preMathAcc ?? 0),
+    Post_Math_Acc: Math.round(sessionData.postMathAcc ?? 0),
+    Math_Delta: Math.round(sessionData.mathAccuracyDelta || 0),
+    Pre_Stress: Number(sessionData.preFatigueScore) || 0,
+    Post_Stress: Number(sessionData.postFatigueScore) || 0,
+    Stress_Drop: Number(sessionData.subjectiveRelief) || 0,
+    Recovery_Score: Math.round(sessionData.recoveryScore || 0),
 
-    fatigueMathAccuracy: sessionData.fatigueAcc || 0,
-    fatigueQuestionsSolved: sessionData.fatigueTotal || 0,
-    fatigueEstimatedRT: sessionData.fatigueRT || 0,
-
-    recoveryMeanRT: sessionData.recoveryRT || 0,
-    recoveryCongruentRT: sessionData.recoveryCongruentRT || 0,
-    recoveryIncongruentRT: sessionData.recoveryIncongruentRT || 0,
-    recoveryInterference: sessionData.recoveryInterference || 0,
-    recoveryAccuracy: sessionData.recoveryAcc || 100
+    // 2. camelCase aliases for backward compatibility
+    rollNumber: String(sessionData.rollNumber || ''),
+    baselineRT: Math.round(sessionData.baselineRT || 0),
+    recoveryRT: Math.round(sessionData.recoveryRT || 0),
+    speedupMs: Math.round(sessionData.stroopSpeedup || 0),
+    preMathAcc: Math.round(sessionData.preMathAcc ?? 0),
+    postMathAcc: Math.round(sessionData.postMathAcc ?? 0),
+    mathDelta: Math.round(sessionData.mathAccuracyDelta || 0),
+    preStress: Number(sessionData.preFatigueScore) || 0,
+    postStress: Number(sessionData.postFatigueScore) || 0,
+    stressDrop: Number(sessionData.subjectiveRelief) || 0,
+    recoveryScore: Math.round(sessionData.recoveryScore || 0)
   };
 
   // 1. Always save locally as resilient backup
@@ -75,7 +79,19 @@ export function exportStoredSessionsCSV() {
     return;
   }
 
-  const headers = Object.keys(data[0]);
+  const headers = [
+    'Roll_No',
+    'Baseline_RT',
+    'Recovery_RT',
+    'Speedup_ms',
+    'Pre_Math_Acc',
+    'Post_Math_Acc',
+    'Math_Delta',
+    'Pre_Stress',
+    'Post_Stress',
+    'Stress_Drop',
+    'Recovery_Score'
+  ];
   const rows = data.map(row => headers.map(h => JSON.stringify(row[h] ?? '')).join(','));
   const csvContent = [headers.join(','), ...rows].join('\n');
 

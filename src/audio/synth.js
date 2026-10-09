@@ -71,23 +71,44 @@ export class BreatheBeatAudio {
 
   /**
    * Starts or resumes the breathing audio loop and synchronized phase callbacks
+   * Supports both object configuration { totalRounds, onPhaseChange, onTick, onComplete }
+   * and legacy positional arguments (onPhaseChange, onTick, onComplete)
    */
-  async startBreathingCycle(onPhaseChange = null, onTick = null) {
-    await this.init();
+  async startBreathingCycle(optsOrPhaseCallback = null, onTick = null, onComplete = null) {
+    let onPhaseChange = null;
+    let totalRounds = 10;
+    let onDone = null;
 
-    if (this.ctx && this.ctx.state === 'suspended') {
-      await this.ctx.resume();
+    if (typeof optsOrPhaseCallback === 'function') {
+      onPhaseChange = optsOrPhaseCallback;
+      onDone = onComplete;
+    } else if (optsOrPhaseCallback && typeof optsOrPhaseCallback === 'object') {
+      onPhaseChange = optsOrPhaseCallback.onPhaseChange;
+      onTick = optsOrPhaseCallback.onTick;
+      onDone = optsOrPhaseCallback.onComplete;
+      if (optsOrPhaseCallback.totalRounds) {
+        totalRounds = optsOrPhaseCallback.totalRounds;
+      }
     }
 
+    this.totalRounds = totalRounds;
     this.onPhaseChangeCallback = onPhaseChange;
     this.onTickCallback = onTick;
+    this.onCompleteCallback = onDone;
     this.isCycleRunning = true;
     this.currentCycle = 1;
     this.lastReportedPhase = null;
     this.cycleStartTime = performance.now();
     this.lastLoopTime = 0;
 
+    await this.init();
+
+    if (this.ctx && this.ctx.state === 'suspended') {
+      await this.ctx.resume();
+    }
+
     if (this.audio) {
+      this.audio.loop = false; // Programmatic cycle control ensures exact round sync
       this.audio.currentTime = 0;
       try {
         await this.audio.play();
@@ -96,11 +117,13 @@ export class BreatheBeatAudio {
       }
     }
 
+    // Reset cycleStartTime right after audio plays to eliminate any startup latency
+    this.cycleStartTime = performance.now();
     this._startSyncLoop();
   }
 
   /**
-   * Continuous sync loop tracking exact playback time of new_audio_sample.mpeg
+   * Continuous sync loop tracking exact 12-second rounds and session time
    */
   _startSyncLoop() {
     if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
@@ -108,42 +131,59 @@ export class BreatheBeatAudio {
     const update = () => {
       if (!this.isCycleRunning) return;
 
-      let currentTime = 0;
-      if (this.audio && !this.audio.paused && this.audio.duration) {
-        currentTime = this.audio.currentTime % this.cycleLength;
-      } else {
-        // Fallback clock in case audio is loading
-        currentTime = ((performance.now() - this.cycleStartTime) / 1000) % this.cycleLength;
+      const now = performance.now();
+      let elapsedInRound = (now - this.cycleStartTime) / 1000;
+
+      // When round duration (12.0s) has completed
+      if (elapsedInRound >= this.cycleLength) {
+        if (this.currentCycle < this.totalRounds) {
+          // Advance to the next round
+          this.currentCycle++;
+          this.cycleStartTime = performance.now();
+          elapsedInRound = 0;
+          this.lastReportedPhase = null;
+
+          // Replay audio sample from the start for the new round
+          if (this.audio) {
+            try {
+              this.audio.currentTime = 0;
+              this.audio.play().catch(() => {});
+            } catch (e) {}
+          }
+        } else {
+          // Exactly 10 rounds completed!
+          this.stopBreathingCycle();
+          if (this.onCompleteCallback) {
+            this.onCompleteCallback({
+              totalCycles: this.totalRounds
+            });
+          }
+          return;
+        }
       }
 
-      // Check for cycle boundary / wrap-around
-      if (currentTime < this.lastLoopTime && (this.lastLoopTime - currentTime) > 6.0) {
-        this.currentCycle++;
-      }
-      this.lastLoopTime = currentTime;
-
-      // Determine active breath phase
+      // Determine active breath phase within the 12-second round
       let phase = 'inhale';
-      let phaseTime = currentTime;
+      let phaseTime = elapsedInRound;
       let phaseDuration = this.inhaleLen;
       let label = 'Inhale';
-      let subtext = 'Arohana Ascent (Sa → Sa′)';
+      let subtext = 'Arohana (Sa → Sa′)';
 
-      if (currentTime < this.inhaleLen) {
+      if (elapsedInRound < this.inhaleLen) {
         phase = 'inhale';
-        phaseTime = currentTime;
+        phaseTime = elapsedInRound;
         phaseDuration = this.inhaleLen;
         label = 'Inhale';
         subtext = 'Arohana (Sa → Sa′)';
-      } else if (currentTime < (this.inhaleLen + this.holdLen)) {
+      } else if (elapsedInRound < (this.inhaleLen + this.holdLen)) {
         phase = 'hold';
-        phaseTime = currentTime - this.inhaleLen;
+        phaseTime = elapsedInRound - this.inhaleLen;
         phaseDuration = this.holdLen;
         label = 'Hold';
         subtext = 'Ga (Vadi Root Anchor)';
       } else {
         phase = 'exhale';
-        phaseTime = currentTime - (this.inhaleLen + this.holdLen);
+        phaseTime = elapsedInRound - (this.inhaleLen + this.holdLen);
         phaseDuration = this.exhaleLen;
         label = 'Exhale';
         subtext = 'Avarohana (Sa′ → Sa)';
@@ -151,6 +191,11 @@ export class BreatheBeatAudio {
 
       const phaseProgress = Math.min(Math.max(phaseTime / phaseDuration, 0), 1);
       const remainingSec = Math.max(0, Math.ceil(phaseDuration - phaseTime));
+
+      // Calculate total session time remaining (strictly in sync with round progress)
+      const totalSessionSec = this.totalRounds * this.cycleLength; // 120s
+      const totalElapsedSec = (this.currentCycle - 1) * this.cycleLength + Math.min(this.cycleLength, elapsedInRound);
+      const totalSecondsLeft = Math.max(0, Math.ceil(totalSessionSec - totalElapsedSec));
 
       // Trigger phase transition callback if phase changed
       if (phase !== this.lastReportedPhase) {
@@ -162,7 +207,9 @@ export class BreatheBeatAudio {
             label,
             subtext,
             duration: phaseDuration,
-            cycle: this.currentCycle
+            cycle: this.currentCycle,
+            totalCycles: this.totalRounds,
+            totalSecondsLeft
           });
         }
       }
@@ -173,8 +220,10 @@ export class BreatheBeatAudio {
           phase,
           phaseProgress,
           remainingSec,
-          currentTime,
-          cycle: this.currentCycle
+          currentTime: elapsedInRound,
+          cycle: this.currentCycle,
+          totalCycles: this.totalRounds,
+          totalSecondsLeft
         });
       }
 
@@ -200,6 +249,7 @@ export class BreatheBeatAudio {
     if (this.audio) {
       try {
         this.audio.pause();
+        this.audio.currentTime = 0;
       } catch (e) {}
     }
   }

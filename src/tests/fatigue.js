@@ -8,13 +8,13 @@ export class FatigueInducer {
   constructor(options = {}) {
     this.container = options.container;
     this.onComplete = options.onComplete || (() => {});
-    this.durationSeconds = options.durationSeconds || 20;
+    this.durationSeconds = options.durationSeconds || 45;
 
     this.active = false;
     this.timerId = null;
     this.questionTimerId = null;
     this.timeRemaining = this.durationSeconds;
-    this.questionTimeLimit = 6.0;
+    this.questionTimeLimit = options.questionTimeLimit || 7.0;
 
     this.currentProblem = null;
     this.questionStartTime = 0;
@@ -193,5 +193,12 @@ export class FatigueInducer {
       meanRt,
       logs: this.logs
     });
+  }
+
+  destroy() {
+    this.active = false;
+    if (this.timerId) clearInterval(this.timerId);
+    if (this.questionTimerId) clearTimeout(this.questionTimerId);
+    if (this.container) this.container.innerHTML = '';
   }
 }
