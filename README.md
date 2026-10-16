@@ -1,7 +1,7 @@
 # BREATHEBEAT
 
 > **Sonified Diaphragmatic Breathing in Raga Bhupali for Cognitive Fatigue Restoration**  
-> *Course:* Music Workshop (Semester 5)  
+> *Course:* Music Workshop  
 > *Team:* Sri Harshit K (2024102022) • Parth Dhodapkar (2024111009) • Atharva Kulkarni (2023101072)
 
 ---

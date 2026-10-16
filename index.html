@@ -198,59 +198,32 @@
       <!-- Injected via JavaScript dynamically -->
     </section>
 
-    <!-- PRE-REST SUBJECTIVE STATE SURVEY (1-5 SCALES, NO DEFAULT SELECTION) -->
+    <!-- PRE-REST SUBJECTIVE STATE SURVEY -->
     <section class="wizard-stage hidden" id="stage-pre-survey">
       <div class="wizard-card">
         <div class="card-header">
           <span class="section-tag">STATE CHECK</span>
           <h2>How are you feeling right now?</h2>
-          <p class="card-sub">Rate your current mental state before we begin the breathing exercise.</p>
+          <p class="card-sub">Tell us how the fatigue-inducing test affected you before the breathing exercise.</p>
         </div>
 
         <form id="form-pre-survey" class="survey-form">
           <div class="survey-item">
-            <label class="survey-q">1. Mental Fatigue <span class="req">*</span></label>
-            <p class="survey-sub">How mentally tired or drained does your brain feel right now?</p>
-            <div class="scale-buttons-row" data-field="pre-fatigue">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Fresh</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3<span class="scale-anchor">Moderate</span></button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">Exhausted</span></button>
+            <label class="survey-q">1. Be honest: How did that test leave your brain feeling right now? <span class="req">*</span></label>
+            <p class="survey-sub">Choose the response that best describes your immediate state after the stressor.</p>
+            <div class="choice-options" data-field="pre-state">
+              <button type="button" class="btn-choice" data-val="exhausted">Completely drained / Exhausted</button>
+              <button type="button" class="btn-choice" data-val="annoyed">Annoyed / Frustrated</button>
+              <button type="button" class="btn-choice" data-val="sharp">Still sharp / Ready for more</button>
+              <button type="button" class="btn-choice" data-val="neutral">Neutral</button>
             </div>
-            <input type="hidden" id="val-pre-fatigue" value="">
+            <input type="hidden" id="val-pre-state" value="">
           </div>
 
-          <div class="survey-item">
-            <label class="survey-q">2. Perceived Stress <span class="req">*</span></label>
-            <p class="survey-sub">How tense, rushed, or stressed do you feel after the math challenge?</p>
-            <div class="scale-buttons-row" data-field="pre-stress">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Calm</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3<span class="scale-anchor">Moderate</span></button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">High Stress</span></button>
-            </div>
-            <input type="hidden" id="val-pre-stress" value="">
-          </div>
-
-          <div class="survey-item">
-            <label class="survey-q">3. Concentration Difficulty <span class="req">*</span></label>
-            <p class="survey-sub">How hard was it to maintain sharp focus on the questions?</p>
-            <div class="scale-buttons-row" data-field="pre-focus">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Easy</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3<span class="scale-anchor">Moderate</span></button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">Straining</span></button>
-            </div>
-            <input type="hidden" id="val-pre-focus" value="">
-          </div>
-
-          <div id="pre-survey-error" class="form-error-msg hidden">Please rate all 3 questions before proceeding.</div>
+          <div id="pre-survey-error" class="form-error-msg hidden">Please select one response before proceeding.</div>
 
           <button type="submit" class="btn-primary-wide">
-            Save Ratings & Prepare for Breathing
+            Save Response & Prepare for Breathing
           </button>
           <button type="button" class="btn-ghost-sm pres-only-btn hidden" id="btn-skip-pre-survey-pres">
             ⏭ Skip State Check (Demo Mode)
@@ -291,85 +264,60 @@
         <div class="card-header">
           <span class="section-tag">FINAL EVALUATION</span>
           <h2>Post-Breathing Evaluation</h2>
-          <p class="card-sub">Rate your current mental clarity and share your experience with the audio.</p>
+          <p class="card-sub">Answer four focused questions about your state and five-minute break experience.</p>
         </div>
 
         <form id="form-post-survey" class="survey-form">
-          <div class="survey-section-title">1. Current State (Compare with before)</div>
+          <div class="survey-section-title">1. State Shift</div>
 
           <div class="survey-item">
-            <label class="survey-q">Mental Fatigue <span class="req">*</span></label>
-            <p class="survey-sub">How tired does your brain feel right now?</p>
-            <div class="scale-buttons-row" data-field="post-fatigue">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Fresh</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3<span class="scale-anchor">Moderate</span></button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">Exhausted</span></button>
+            <label class="survey-q">1. Pick the word that best describes how you feel right now. <span class="req">*</span></label>
+            <p class="survey-sub">Choose the response that best captures your state after the break.</p>
+            <div class="choice-options" data-field="post-state">
+              <button type="button" class="btn-choice" data-val="refreshed">Refreshed &amp; Alert (Ready to focus)</button>
+              <button type="button" class="btn-choice" data-val="neutral">Neutral / No real change</button>
+              <button type="button" class="btn-choice" data-val="tired">Still mentally tired / Heavy headed</button>
+              <button type="button" class="btn-choice" data-val="bored">Bored / Restless</button>
             </div>
-            <input type="hidden" id="val-post-fatigue" value="">
+            <input type="hidden" id="val-post-state" value="">
           </div>
 
           <div class="survey-item">
-            <label class="survey-q">Perceived Stress <span class="req">*</span></label>
-            <p class="survey-sub">How tense or stressed do you feel right now?</p>
-            <div class="scale-buttons-row" data-field="post-stress">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Calm</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3<span class="scale-anchor">Moderate</span></button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">High Stress</span></button>
+            <label class="survey-q">2. During that 5-minute break, what was your brain actually doing? <span class="req">*</span></label>
+            <div class="choice-options" data-field="mind-wandering">
+              <button type="button" class="btn-choice" data-val="audio-breath">Mostly focusing on the audio / my breath</button>
+              <button type="button" class="btn-choice" data-val="tasks">Thinking about assignments, coding, or random thoughts</button>
+              <button type="button" class="btn-choice" data-val="environment">Getting distracted by outside noises / environment</button>
+              <button type="button" class="btn-choice" data-val="timer">Waiting impatiently for the timer to end</button>
             </div>
-            <input type="hidden" id="val-post-stress" value="">
+            <input type="hidden" id="val-mind-wandering" value="">
           </div>
 
+          <div class="survey-section-title">2. Break Experience</div>
+
           <div class="survey-item">
-            <label class="survey-q">Concentration Difficulty <span class="req">*</span></label>
-            <p class="survey-sub">How difficult was it to focus during the second round of tasks?</p>
-            <div class="scale-buttons-row" data-field="post-focus">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Easy</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3<span class="scale-anchor">Moderate</span></button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">Straining</span></button>
+            <label class="survey-q">3. How did the 4-second inhale / 6-second exhale pace feel to you? <span class="req">*</span></label>
+            <div class="choice-options" data-field="breathing-pace">
+              <button type="button" class="btn-choice" data-val="natural">Natural and easy to follow</button>
+              <button type="button" class="btn-choice" data-val="slow">Uncomfortably slow (felt like I was running out of air)</button>
+              <button type="button" class="btn-choice" data-val="fast">Too fast</button>
+              <button type="button" class="btn-choice" data-val="confusing">Confusing to track</button>
             </div>
-            <input type="hidden" id="val-post-focus" value="">
+            <input type="hidden" id="val-breathing-pace" value="">
           </div>
 
-          <div class="survey-section-title">2. Breathing & Audio Experience</div>
-
           <div class="survey-item">
-            <label class="survey-q">Was the breathing exercise easy to follow? <span class="req">*</span></label>
-            <p class="survey-sub">Did the musical ascent and descent feel intuitive to pace your breath with?</p>
-            <div class="scale-buttons-row" data-field="post-ease">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Hard / Unclear</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3</button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">Effortless</span></button>
+            <label class="survey-q">4. During the break, what influenced your focus the most? <span class="req">*</span></label>
+            <div class="choice-options" data-field="focus-influence">
+              <button type="button" class="btn-choice" data-val="steady-track">Having a steady track to anchor my attention</button>
+              <button type="button" class="btn-choice" data-val="silence-wandering">The silence made my mind wander to other tasks</button>
+              <button type="button" class="btn-choice" data-val="outside-noise">Random outside noises in the room</button>
+              <button type="button" class="btn-choice" data-val="restless">I just couldn't sit still</button>
             </div>
-            <input type="hidden" id="val-post-ease" value="">
+            <input type="hidden" id="val-focus-influence" value="">
           </div>
 
-          <div class="survey-item">
-            <label class="survey-q">Was the audio pleasant and soothing? <span class="req">*</span></label>
-            <p class="survey-sub">Did the flute glides and Tanpura drone sound calming or distracting?</p>
-            <div class="scale-buttons-row" data-field="post-pleasant">
-              <button type="button" class="btn-scale" data-val="1">1<span class="scale-anchor">Irritating</span></button>
-              <button type="button" class="btn-scale" data-val="2">2</button>
-              <button type="button" class="btn-scale" data-val="3">3</button>
-              <button type="button" class="btn-scale" data-val="4">4</button>
-              <button type="button" class="btn-scale" data-val="5">5<span class="scale-anchor">Deeply Soothing</span></button>
-            </div>
-            <input type="hidden" id="val-post-pleasant" value="">
-          </div>
-
-          <div class="survey-item">
-            <label class="survey-q" for="post-feedback">Describe how you felt during and after the breathing exercise:</label>
-            <textarea id="post-feedback" class="input-textarea" rows="3" placeholder="Describe your experience or thoughts here..."></textarea>
-          </div>
-
-          <div id="post-survey-error" class="form-error-msg hidden">Please answer all scale rating questions before submitting.</div>
+          <div id="post-survey-error" class="form-error-msg hidden">Please answer all 4 questions before submitting.</div>
 
           <button type="submit" class="btn-primary-wide">
             Submit Final Session Data
