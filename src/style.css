@@ -1110,6 +1110,39 @@ html, body {
   color: var(--text-muted);
 }
 
+.choice-options {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+}
+
+.btn-choice {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  text-align: left;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-choice:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.btn-choice.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: #38bdf8;
+  color: var(--text-main);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.18);
+}
+
 .scale-buttons-row {
   display: flex;
   gap: 0.5rem;

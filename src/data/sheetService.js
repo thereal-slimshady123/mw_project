@@ -23,6 +23,11 @@ export async function recordStudySession(sessionData) {
     Post_Stress: Number(sessionData.postFatigueScore) || 0,
     Stress_Drop: Number(sessionData.subjectiveRelief) || 0,
     Recovery_Score: Math.round(sessionData.recoveryScore || 0),
+    Pre_State: sessionData.preState || '',
+    Post_State: sessionData.postState || '',
+    Mind_Wandering: sessionData.mindWandering || '',
+    Breathing_Pace: sessionData.breathingPace || '',
+    Focus_Influence: sessionData.focusInfluence || '',
 
     // 2. camelCase aliases for backward compatibility
     rollNumber: String(sessionData.rollNumber || ''),
@@ -35,7 +40,12 @@ export async function recordStudySession(sessionData) {
     preStress: Number(sessionData.preFatigueScore) || 0,
     postStress: Number(sessionData.postFatigueScore) || 0,
     stressDrop: Number(sessionData.subjectiveRelief) || 0,
-    recoveryScore: Math.round(sessionData.recoveryScore || 0)
+    recoveryScore: Math.round(sessionData.recoveryScore || 0),
+    preState: sessionData.preState || '',
+    postState: sessionData.postState || '',
+    mindWandering: sessionData.mindWandering || '',
+    breathingPace: sessionData.breathingPace || '',
+    focusInfluence: sessionData.focusInfluence || ''
   };
 
   // 1. Always save locally as resilient backup
@@ -90,7 +100,12 @@ export function exportStoredSessionsCSV() {
     'Pre_Stress',
     'Post_Stress',
     'Stress_Drop',
-    'Recovery_Score'
+    'Recovery_Score',
+    'Pre_State',
+    'Post_State',
+    'Mind_Wandering',
+    'Breathing_Pace',
+    'Focus_Influence'
   ];
   const rows = data.map(row => headers.map(h => JSON.stringify(row[h] ?? '')).join(','));
   const csvContent = [headers.join(','), ...rows].join('\n');

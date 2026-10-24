@@ -62,6 +62,7 @@ class BreatheBeatApp {
       preFatigue: '',
       preStress: '',
       preFocus: '',
+      preState: '',
       preFatigueScore: 0,
 
       // Post-Breathing Focus & Fatigue
@@ -78,6 +79,10 @@ class BreatheBeatApp {
       postFatigue: '',
       postStress: '',
       postFocus: '',
+      postState: '',
+      mindWandering: '',
+      breathingPace: '',
+      focusInfluence: '',
       postFatigueScore: 0,
 
       // Experience & Feedback
@@ -416,7 +421,7 @@ class BreatheBeatApp {
         this.showTransition({
           badge: 'STAGE 3 OF 7 · STATE CHECK',
           title: 'Mid-Session State Check',
-          desc: 'Rate your current mental fatigue, stress, and concentration effort on a 1–5 scale before starting the guided breathing exercise.',
+          desc: 'Answer one quick question about how the stress test left you before starting the guided breathing exercise.',
           onProceed: () => this.startPreSurvey()
         });
       }
@@ -432,18 +437,16 @@ class BreatheBeatApp {
     if (!form) return;
 
     const errorMsg = document.getElementById('pre-survey-error');
-    this.wireScaleButtonRows(form, errorMsg);
+    this.wireChoiceButtonRows(form, errorMsg);
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const fatigueVal = document.getElementById('val-pre-fatigue').value;
-      const stressVal = document.getElementById('val-pre-stress').value;
-      const focusVal = document.getElementById('val-pre-focus').value;
+      const stateVal = document.getElementById('val-pre-state').value;
 
-      if (!fatigueVal || !stressVal || !focusVal) {
+      if (!stateVal) {
         if (errorMsg) {
-          errorMsg.textContent = 'Please select a rating for all 3 questions before proceeding.';
+          errorMsg.textContent = 'Please select one response before proceeding.';
           errorMsg.classList.remove('hidden');
         }
         return;
@@ -451,14 +454,13 @@ class BreatheBeatApp {
 
       if (errorMsg) errorMsg.classList.add('hidden');
 
-      const f = parseInt(fatigueVal, 10);
-      const s = parseInt(stressVal, 10);
-      const fc = parseInt(focusVal, 10);
-
-      this.session.preFatigue = f;
-      this.session.preStress = s;
-      this.session.preFocus = fc;
-      this.session.preFatigueScore = parseFloat(((f + s + fc) / 3).toFixed(2));
+      const preStateScores = { sharp: 1, neutral: 2, annoyed: 3, exhausted: 4 };
+      const score = preStateScores[stateVal] || 0;
+      this.session.preState = stateVal;
+      this.session.preFatigue = score;
+      this.session.preStress = score;
+      this.session.preFocus = score;
+      this.session.preFatigueScore = score;
 
       // Transition to Stage 4: Breathing (10 Rounds, option to skip after 8)
       this.showTransition({
@@ -489,6 +491,24 @@ class BreatheBeatApp {
           btn.classList.add('active');
           const val = btn.getAttribute('data-val');
           if (hiddenInput) hiddenInput.value = val;
+          if (errorEl) errorEl.classList.add('hidden');
+        });
+      });
+    });
+  }
+
+  wireChoiceButtonRows(container, errorEl = null) {
+    const rows = container.querySelectorAll('.choice-options');
+    rows.forEach(row => {
+      const fieldName = row.getAttribute('data-field');
+      const hiddenInput = document.getElementById(`val-${fieldName}`);
+      const buttons = row.querySelectorAll('.btn-choice');
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          if (hiddenInput) hiddenInput.value = btn.getAttribute('data-val') || '';
           if (errorEl) errorEl.classList.add('hidden');
         });
       });
@@ -673,7 +693,7 @@ class BreatheBeatApp {
         this.showTransition({
           badge: 'STAGE 7 OF 7 · FINAL EVALUATION',
           title: 'Final Evaluation & Audio Feedback',
-          desc: 'Almost finished! Rate your current mental clarity after the breathing exercise, evaluate the audio experience, and share any thoughts or observations.',
+          desc: 'Almost finished! Answer four focused questions about your state and five-minute break experience.',
           onProceed: () => this.startPostSurvey()
         });
       }
@@ -689,21 +709,19 @@ class BreatheBeatApp {
     if (!form) return;
 
     const errorMsg = document.getElementById('post-survey-error');
-    this.wireScaleButtonRows(form, errorMsg);
+    this.wireChoiceButtonRows(form, errorMsg);
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const fatigueVal = document.getElementById('val-post-fatigue').value;
-      const stressVal = document.getElementById('val-post-stress').value;
-      const focusVal = document.getElementById('val-post-focus').value;
-      const easeVal = document.getElementById('val-post-ease').value;
-      const pleasantVal = document.getElementById('val-post-pleasant').value;
-      const feedbackText = (document.getElementById('post-feedback')?.value || '').trim();
+      const stateVal = document.getElementById('val-post-state').value;
+      const wanderingVal = document.getElementById('val-mind-wandering').value;
+      const paceVal = document.getElementById('val-breathing-pace').value;
+      const influenceVal = document.getElementById('val-focus-influence').value;
 
-      if (!fatigueVal || !stressVal || !focusVal || !easeVal || !pleasantVal) {
+      if (!stateVal || !wanderingVal || !paceVal || !influenceVal) {
         if (errorMsg) {
-          errorMsg.textContent = 'Please answer all 5 rating scale questions before submitting.';
+          errorMsg.textContent = 'Please answer all 4 questions before submitting.';
           errorMsg.classList.remove('hidden');
         }
         return;
@@ -711,19 +729,16 @@ class BreatheBeatApp {
 
       if (errorMsg) errorMsg.classList.add('hidden');
 
-      const f = parseInt(fatigueVal, 10);
-      const s = parseInt(stressVal, 10);
-      const fc = parseInt(focusVal, 10);
-      const ease = parseInt(easeVal, 10);
-      const pleasant = parseInt(pleasantVal, 10);
-
-      this.session.postFatigue = f;
-      this.session.postStress = s;
-      this.session.postFocus = fc;
-      this.session.postFatigueScore = parseFloat(((f + s + fc) / 3).toFixed(2));
-      this.session.breathingEase = ease;
-      this.session.audioPleasantness = pleasant;
-      this.session.qualitativeFeedback = feedbackText;
+      const postStateScores = { refreshed: 1, neutral: 2, tired: 3, bored: 4 };
+      const score = postStateScores[stateVal] || 0;
+      this.session.postState = stateVal;
+      this.session.mindWandering = wanderingVal;
+      this.session.breathingPace = paceVal;
+      this.session.focusInfluence = influenceVal;
+      this.session.postFatigue = score;
+      this.session.postStress = score;
+      this.session.postFocus = score;
+      this.session.postFatigueScore = score;
 
       // Compute Measurable Deltas & Recovery Metrics
       this.computeFinalMetrics();
@@ -831,20 +846,17 @@ class BreatheBeatApp {
         const intakeForm = document.getElementById('form-intake');
         if (intakeForm) intakeForm.reset();
 
-        const postFeedback = document.getElementById('post-feedback');
-        if (postFeedback) postFeedback.value = '';
-
         // Clear active states on buttons
         document.querySelectorAll('.pill-choice').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.scale-chip').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.btn-scale').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.btn-scale, .btn-choice').forEach(s => s.classList.remove('active'));
 
         // Reset hidden values
         const hiddenIds = [
           'intake-mw', 'intake-training',
-          'val-pre-fatigue', 'val-pre-stress', 'val-pre-focus',
-          'val-post-fatigue', 'val-post-stress', 'val-post-focus',
-          'val-post-ease', 'val-post-pleasant'
+          'val-pre-state',
+          'val-post-state', 'val-mind-wandering', 'val-breathing-pace',
+          'val-focus-influence'
         ];
         hiddenIds.forEach(id => {
           const el = document.getElementById(id);
@@ -1030,10 +1042,11 @@ class BreatheBeatApp {
 
   ensurePreSurveyData() {
     if (!this.session.preFatigueScore) {
+      this.session.preState = 'exhausted';
       this.session.preFatigue = 4;
       this.session.preStress = 4;
-      this.session.preFocus = 3;
-      this.session.preFatigueScore = 3.67;
+      this.session.preFocus = 4;
+      this.session.preFatigueScore = 4;
     }
   }
 
@@ -1063,7 +1076,11 @@ class BreatheBeatApp {
     this.ensureRecoveryStroopData();
     this.ensurePostMathData();
     if (!this.session.postFatigueScore) {
-      this.session.postFatigue = 2;
+      this.session.postState = 'refreshed';
+      this.session.mindWandering = 'audio-breath';
+      this.session.breathingPace = 'natural';
+      this.session.focusInfluence = 'steady-track';
+      this.session.postFatigue = 1;
       this.session.postStress = 1;
       this.session.postFocus = 2;
       this.session.postFatigueScore = 1.67;
