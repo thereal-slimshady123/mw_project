@@ -463,7 +463,7 @@ class BreatheBeatApp {
       // Transition to Stage 4: Breathing (10 Rounds, option to skip after 8)
       this.showTransition({
         badge: 'STAGE 4 OF 7 · GUIDED BREATHING',
-        title: 'Diaphragmatic Breathing in Raga Bhupali (10 Rounds)',
+        title: 'Diaphragmatic Breathing (10 Rounds)',
         desc: 'You will now practice diaphragmatic 4-2-6 breathing (4s Inhale, 2s Hold, 6s Exhale) for up to 10 rounds (2 minutes), with an option to proceed after 8 rounds are completed. Close your eyes, listen to the acoustic Bansuri flute and Tanpura drone, and let the music guide your breath naturally.',
         onProceed: () => this.startBreathingStage()
       });
@@ -764,13 +764,58 @@ class BreatheBeatApp {
       (this.session.preFatigueScore - this.session.postFatigueScore).toFixed(2)
     );
 
-    // Cognitive Recovery Score (Standardized 0-100% metric)
-    if (rec <= base) {
-      this.session.recoveryScore = 100;
-    } else {
-      const dropRatio = base / rec;
-      this.session.recoveryScore = Math.round(Math.min(100, Math.max(0, dropRatio * 100)));
+    // =========================================================================
+    // Multi-Metric Composite Recovery Score (0 - 100%)
+    // Synthesizes speed restoration, cognitive stamina, mental clarity, and stress relief
+    // =========================================================================
+
+    // A. Reaction Time Recovery Component (30% weight)
+    // Speed restored or improved compared to baseline
+    let rtScore = 100;
+    if (rec > base && rec > 0) {
+      rtScore = Math.min(100, Math.max(0, Math.round((base / rec) * 100)));
     }
+
+    // B. Cognitive Stamina & Accuracy Component (25% weight)
+    // Arithmetic precision after breathing & retention compared to pre-breathing fatigue
+    const preAcc = Math.min(100, Math.max(0, this.session.preMathAcc ?? 85));
+    const postAcc = Math.min(100, Math.max(0, this.session.postMathAcc ?? 85));
+    const accRetention = preAcc > 0 ? Math.min(100, (postAcc / preAcc) * 100) : postAcc;
+    const mathScore = Math.min(100, Math.max(0, Math.round(0.5 * postAcc + 0.5 * accRetention)));
+
+    // C. Subjective Stress & Fatigue Relief Component (25% weight)
+    // Mental decompression across fatigue, stress, and concentration difficulty
+    const preStress = Math.min(5, Math.max(1, this.session.preFatigueScore || 3.5));
+    const postStress = Math.min(5, Math.max(1, this.session.postFatigueScore || 2.0));
+    const postCalm = ((5 - postStress) / 4) * 100; // 1 = 100% calm, 5 = 0%
+    const stressRelief = preStress - postStress;
+    const reliefRatio = preStress > 1
+      ? Math.min(100, Math.max(0, (stressRelief / (preStress - 1)) * 100))
+      : (postStress <= 1 ? 100 : 50);
+    const stressScore = Math.min(100, Math.max(0, Math.round(0.5 * postCalm + 0.5 * reliefRatio)));
+
+    // D. Executive Attention / Interference Reduction Component (20% weight)
+    // Reduction in Stroop interference (congruent vs incongruent conflict)
+    const baseInt = Math.max(0, this.session.baselineInterference || 0);
+    const recInt = Math.max(0, this.session.recoveryInterference || 0);
+    let interferenceScore = 100;
+    if (recInt <= baseInt) {
+      interferenceScore = 100;
+    } else if (baseInt > 0) {
+      interferenceScore = Math.min(100, Math.max(0, Math.round((baseInt / recInt) * 100)));
+    } else {
+      interferenceScore = Math.min(100, Math.max(0, Math.round(100 - (recInt / 3))));
+    }
+
+    // Weighted composite recovery score (Total = 100%)
+    const compositeScore = Math.round(
+      (0.30 * rtScore) +
+      (0.25 * mathScore) +
+      (0.25 * stressScore) +
+      (0.20 * interferenceScore)
+    );
+
+    this.session.recoveryScore = Math.min(100, Math.max(0, compositeScore));
   }
 
   /* ==========================================================================
@@ -1024,7 +1069,7 @@ class BreatheBeatApp {
       this.session.postFatigueScore = 1.67;
       this.session.breathingEase = 5;
       this.session.audioPleasantness = 5;
-      this.session.qualitativeFeedback = 'Presentation Demo: Diaphragmatic 4-2-6 breathing in Raga Bhupali restored clarity.';
+      this.session.qualitativeFeedback = 'Presentation Demo: Diaphragmatic 4-2-6 breathing restored clarity.';
     }
   }
 
@@ -1114,27 +1159,7 @@ class BreatheBeatApp {
     summaryContainer.innerHTML = `
       <div class="complete-metric-card">
         <span class="complete-metric-lbl">Participant Roll</span>
-        <span class="complete-metric-val" style="font-size: 1.05rem;">${this.session.rollNumber || 'DEMO'}</span>
-      </div>
-      <div class="complete-metric-card">
-        <span class="complete-metric-lbl">Stroop Speedup</span>
-        <span class="complete-metric-val ${this.session.stroopSpeedup >= 0 ? 'pos' : ''}">
-          ${this.session.stroopSpeedup >= 0 ? '+' : ''}${this.session.stroopSpeedup} ms
-        </span>
-      </div>
-      <div class="complete-metric-card">
-        <span class="complete-metric-lbl">Math Accuracy Δ</span>
-        <span class="complete-metric-val ${this.session.mathAccuracyDelta >= 0 ? 'pos' : ''}">
-          ${this.session.mathAccuracyDelta >= 0 ? '+' : ''}${this.session.mathAccuracyDelta}%
-        </span>
-      </div>
-      <div class="complete-metric-card">
-        <span class="complete-metric-lbl">Stress Relief</span>
-        <span class="complete-metric-val pos">-${Math.abs(this.session.subjectiveRelief)} pts</span>
-      </div>
-      <div class="complete-metric-card">
-        <span class="complete-metric-lbl">Recovery Score</span>
-        <span class="complete-metric-val pos">${this.session.recoveryScore}%</span>
+        <span class="complete-metric-val" style="font-size: 1.15rem;">${this.session.rollNumber || 'DEMO'}</span>
       </div>
     `;
     summaryContainer.classList.remove('hidden');

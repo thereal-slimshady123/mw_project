@@ -354,7 +354,7 @@ export class CohortManager {
     const armLabels = {
       silent: 'Silent Rest (Control)',
       spoken: 'Spoken Guide (Baseline)',
-      breathebeat: 'BREATHEBEAT Engine (Raga Bhupali)'
+      breathebeat: 'BREATHEBEAT Engine'
     };
 
     const groupStats = {};

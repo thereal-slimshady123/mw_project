@@ -357,23 +357,25 @@ html, body {
   color: #c7d2fe;
 }
 
-/* Complete Metrics Summary for Presentation */
+/* Complete Summary Container */
 .complete-metrics-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  justify-content: center;
   margin: 1.5rem 0;
-  text-align: left;
 }
 
 .complete-metric-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 0.85rem;
+  padding: 1rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 220px;
+  text-align: center;
 }
 
 .complete-metric-val {
