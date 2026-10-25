@@ -20,8 +20,8 @@ export const COLUMNS = [
   'Roll_No', 'Age', 'MW_Course',
   'Music_Training', 'Breathing_Practice',
   'Condition_Order', 'Condition', 'Block_Position',
-  'Baseline_Stroop_RT', 'Baseline_Stroop_Acc', 'Baseline_Stroop_Interference',
-  'Stressor_Math_Acc', 'Stressor_Math_Total', 'Stressor_Math_RT',
+  'Stressor_Math_Acc', 'Stressor_Math_Total', 'Stressor_Math_Correct', 'Stressor_Math_RT',
+  'PostRest_Math_Acc', 'PostRest_Math_Total', 'PostRest_Math_Correct', 'PostRest_Math_RT',
   'PreRest_Stroop_RT', 'PreRest_Stroop_Acc', 'PreRest_Stroop_Interference',
   'PostRest_Stroop_RT', 'PostRest_Stroop_Acc', 'PostRest_Stroop_Interference',
   'Stroop_RT_Gain_ms', 'Stroop_Acc_Gain', 'Stroop_Interference_Gain_ms',
@@ -62,13 +62,15 @@ export function buildConditionRow(session, block) {
     Condition: block.condition,
     Block_Position: block.position,
 
-    Baseline_Stroop_RT: num(session.baselineStroop?.meanRT),
-    Baseline_Stroop_Acc: num(session.baselineStroop?.accuracy),
-    Baseline_Stroop_Interference: num(session.baselineStroop?.stroopEffect),
-
     Stressor_Math_Acc: num(block.stressorMath?.accuracy),
     Stressor_Math_Total: num(block.stressorMath?.totalQuestions),
+    Stressor_Math_Correct: num(block.stressorMath?.correctQuestions),
     Stressor_Math_RT: num(block.stressorMath?.meanRt),
+
+    PostRest_Math_Acc: num(block.postRestMath?.accuracy),
+    PostRest_Math_Total: num(block.postRestMath?.totalQuestions),
+    PostRest_Math_Correct: num(block.postRestMath?.correctQuestions),
+    PostRest_Math_RT: num(block.postRestMath?.meanRt),
 
     PreRest_Stroop_RT: num(block.preStroop?.meanRT),
     PreRest_Stroop_Acc: num(block.preStroop?.accuracy),

@@ -8,13 +8,12 @@
  * (counterbalancing order / practice effects) and recorded with the data.
  *
  * Protocol:
- *   Study Overview → Intake → Baseline Stroop (practice + baseline)
- *   → Part 1 [ Stressor Math → Pre-Rest Stroop → State Check → Rest → Post-Rest Stroop → State & Experience Check ]
+ *   Study Overview → Intake
+ *   → Part 1 [ Stressor Math → Pre-Rest Stroop → State Check → Rest → Math → Post-Rest Stroop → State & Experience Check ]
  *   → Part 2 [ same, other condition ]
  *   → Final Comparison → Complete
  *
- * Pre- and post-rest measures within each part are symmetric (Stroop then identical state items),
- * so each condition yields a clean pre→post change score.
+ * Each condition uses the same Math → Stroop sequence before and after the rest.
  */
 
 import { synth } from './audio/synth.js';
@@ -31,7 +30,7 @@ import {
   collectAnswers
 } from './data/questions.js';
 
-const PROTOCOL_VERSION = '2.1-silence-vs-breathebeat';
+const PROTOCOL_VERSION = '2.3-symmetrical-math-no-warmup';
 const STROOP_TRIALS = 12;
 const MATH_SECONDS = 45;
 const REST_ROUNDS = 18; // 18 x 10s = 3 minutes (full BreatheBeat track)
@@ -98,12 +97,12 @@ class BreatheBeatApp {
       intake: {},
 
       conditionOrder,
-      baselineStroop: null,
 
       blocks: conditionOrder.map((condition, i) => ({
         condition,
         position: i + 1,
         stressorMath: null,
+        postRestMath: null,
         preStroop: null,
         preState: null,
         restSeconds: 0,
@@ -123,9 +122,9 @@ class BreatheBeatApp {
    * Linear list of every step in the session (drives navigation and presentation-mode skipping)
    */
   buildSteps() {
-    const steps = [{ type: 'overview' }, { type: 'intake' }, { type: 'baseline-stroop' }];
+    const steps = [{ type: 'overview' }, { type: 'intake' }];
     [0, 1].forEach(b => {
-      ['math', 'pre-stroop', 'pre-survey', 'rest', 'post-stroop', 'post-survey']
+      ['math', 'pre-stroop', 'pre-survey', 'rest', 'post-math', 'post-stroop', 'post-survey']
         .forEach(type => steps.push({ type, b }));
     });
     steps.push({ type: 'final-survey' }, { type: 'complete' });
@@ -192,8 +191,8 @@ class BreatheBeatApp {
     switch (step.type) {
       case 'overview': return this.showStage('stage-overview', 'Welcome');
       case 'intake': return this.showStage('stage-intake', '1. Participant Intake');
-      case 'baseline-stroop': return this.startBaselineStroop();
       case 'math': return this.startStressorMath(step.b);
+      case 'post-math': return this.startStressorMath(step.b, 'post');
       case 'pre-stroop': return this.startBlockStroop(step.b, 'pre');
       case 'pre-survey': return this.startPreSurvey(step.b);
       case 'rest': return this.startRest(step.b);
@@ -226,12 +225,6 @@ class BreatheBeatApp {
     const stroopDesc = 'You will see color words (RED, GREEN, BLUE, YELLOW) printed in colored ink. Tap the INK COLOR of each word, not the word itself, as quickly and accurately as possible.';
 
     switch (step.type) {
-      case 'baseline-stroop':
-        return {
-          badge: 'WARM-UP · BASELINE FOCUS',
-          title: 'Baseline Focus Check (Stroop Task)',
-          desc: stroopDesc
-        };
       case 'math': {
         const info = CONDITION_INFO[this.session.blocks[step.b].condition];
         return {
@@ -247,6 +240,12 @@ class BreatheBeatApp {
           badge: `${this.blockTag(step.b)} · FOCUS CHECK`,
           title: 'Focus Check (Before the Break)',
           desc: stroopDesc
+        };
+      case 'post-math':
+        return {
+          badge: `${this.blockTag(step.b)} · AFTER-BREAK MATH`,
+          title: 'After-Break Arithmetic Check',
+          desc: `Repeat the rapid mental arithmetic task for ${MATH_SECONDS} seconds. Answer as many questions correctly as you can.`
         };
       case 'rest': {
         const info = CONDITION_INFO[this.session.blocks[step.b].condition];
@@ -492,16 +491,6 @@ class BreatheBeatApp {
     this.currentActiveTask.start();
   }
 
-  startBaselineStroop() {
-    this.mountStroop({
-      tag: 'BASELINE',
-      title: 'Color Focus Check',
-      sub: 'Select the <strong>INK COLOR</strong> of the word as quickly and accurately as possible.',
-      label: 'Warm-up · Baseline Focus Check',
-      onComplete: (summary) => { this.session.baselineStroop = summary; }
-    });
-  }
-
   startBlockStroop(b, when) {
     const block = this.session.blocks[b];
     const color = CONDITION_INFO[block.condition].color;
@@ -529,15 +518,19 @@ class BreatheBeatApp {
   /* ==========================================================================
      Stressor: Timed Arithmetic
      ========================================================================== */
-  startStressorMath(b) {
-    this.showStage('stage-task-mount', `${this.blockLabel(b)} · Stress Task`);
+  startStressorMath(b, when = 'pre') {
+    const isPostRest = when === 'post';
+    this.showStage(
+      'stage-task-mount',
+      `${this.blockLabel(b)} · ${isPostRest ? 'After-Break Math' : 'Stress Task'}`
+    );
 
     const mount = document.getElementById('stage-task-mount');
     mount.innerHTML = `
       <div class="wizard-card">
         <div class="card-header">
-          <span class="section-tag" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">${this.blockTag(b)} · STRESS TASK</span>
-          <h2>Rapid Arithmetic Challenge</h2>
+          <span class="section-tag" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">${this.blockTag(b)} · ${isPostRest ? 'AFTER-BREAK MATH' : 'STRESS TASK'}</span>
+          <h2>${isPostRest ? 'After-Break Arithmetic Check' : 'Rapid Arithmetic Challenge'}</h2>
           <p class="card-sub">Answer arithmetic questions under time pressure (${MATH_SECONDS} seconds total).</p>
         </div>
         <div id="math-mount-point"></div>
@@ -549,11 +542,13 @@ class BreatheBeatApp {
       durationSeconds: MATH_SECONDS,
       questionTimeLimit: 7.0,
       onComplete: (data) => {
-        this.session.blocks[b].stressorMath = {
+        const metrics = {
           accuracy: data.accuracy,
           totalQuestions: data.totalQuestions,
+          correctQuestions: data.correctQuestions,
           meanRt: data.meanRt
         };
+        this.session.blocks[b][isPostRest ? 'postRestMath' : 'stressorMath'] = metrics;
         this.advance();
       }
     });
@@ -895,11 +890,15 @@ class BreatheBeatApp {
           this.session.intake = midAnswers(INTAKE_QUESTIONS);
         }
         break;
-      case 'baseline-stroop':
-        if (!this.session.baselineStroop) this.session.baselineStroop = demoStroop(840);
-        break;
       case 'math':
-        if (!block.stressorMath) block.stressorMath = { accuracy: 80, totalQuestions: 9, meanRt: 3100 };
+        if (!block.stressorMath) {
+          block.stressorMath = { accuracy: 80, totalQuestions: 9, correctQuestions: 7, meanRt: 3100 };
+        }
+        break;
+      case 'post-math':
+        if (!block.postRestMath) {
+          block.postRestMath = { accuracy: 80, totalQuestions: 9, correctQuestions: 7, meanRt: 3100 };
+        }
         break;
       case 'pre-stroop':
         if (!block.preStroop) block.preStroop = demoStroop(900);
