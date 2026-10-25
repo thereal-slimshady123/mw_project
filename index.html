@@ -41,7 +41,7 @@
             </svg>
           </button>
           <div class="volume-slider-wrap" title="Audio Volume">
-            <input type="range" id="global-volume" min="0" max="1" step="0.05" value="0.8" class="volume-range">
+            <input type="range" id="global-volume" min="0" max="1" step="0.05" value="1" class="volume-range">
           </div>
         </div>
 
@@ -90,12 +90,66 @@
   <!-- Main Wizard Shell -->
   <main class="main-shell">
     
+    <!-- STAGE 0: STUDY OVERVIEW (what the experiment is and what the participant will do) -->
+    <section class="wizard-stage" id="stage-overview">
+      <div class="wizard-card">
+        <div class="card-header">
+          <span class="section-tag">ABOUT THIS STUDY</span>
+          <h2>Welcome to BREATHEBEAT</h2>
+          <p class="card-sub">We are comparing two kinds of short breaks to see how well each one helps your mind recover after a stressful task. The whole session takes about 15 minutes.</p>
+        </div>
+
+        <div class="overview-section">
+          <h3>What you will do</h3>
+          <ol class="block-steps">
+            <li>A short warm-up color task.</li>
+            <li><strong>Part 1</strong> and <strong>Part 2</strong>. Each part has the same steps:
+              <ul>
+                <li>45 seconds of quick arithmetic (meant to be a bit stressful)</li>
+                <li>A short color task and two quick questions</li>
+                <li><strong>A 3-minute break with your eyes closed</strong></li>
+                <li>The color task again and a few quick questions</li>
+              </ul>
+            </li>
+            <li>Two final questions comparing the breaks.</li>
+          </ol>
+        </div>
+
+        <div class="overview-section">
+          <h3>The two breaks (in random order)</h3>
+          <div class="overview-conditions">
+            <div class="overview-condition" style="--cond: #a78bfa;">
+              <span class="overview-cond-name">Silent Break</span>
+              <p>Close your eyes and sit in silence. Breathe slowly at your own pace.</p>
+            </div>
+            <div class="overview-condition" style="--cond: #34d399;">
+              <span class="overview-cond-name">Audio Break</span>
+              <p>Close your eyes and breathe in sync with the audio. Inhale on the short sound (4 s), exhale on the long sound (6 s).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="overview-section">
+          <h3>Before you start</h3>
+          <ul class="block-steps">
+            <li>Sit somewhere quiet and use headphones or earphones if you have them.</li>
+            <li>Put your phone away for the whole session.</li>
+            <li>There are no right or wrong answers. Answer honestly.</li>
+          </ul>
+        </div>
+
+        <button type="button" class="btn-primary-wide" id="btn-start-study">
+          I understand, let's begin
+        </button>
+      </div>
+    </section>
+
     <!-- STAGE 1: INTAKE FORM (NO DEFAULT VALUES) -->
-    <section class="wizard-stage" id="stage-intake">
+    <section class="wizard-stage hidden" id="stage-intake">
       <div class="wizard-card">
         <div class="card-header">
           <span class="section-tag">PARTICIPANT INTAKE</span>
-          <h2>Welcome to BREATHEBEAT</h2>
+          <h2>About You</h2>
           <p class="card-sub">Please fill in your basic details before we begin the study.</p>
         </div>
 
@@ -126,33 +180,8 @@
             <input type="hidden" id="intake-mw" name="isMusicWorkshop" value="">
           </div>
 
-          <div class="form-group">
-            <label>Previous Musical Training <span class="req">*</span></label>
-            <p class="field-hint">Prior formal or informal musical training (vocal or instrumental):</p>
-            <div class="scale-chips-row" id="chips-training">
-              <button type="button" class="scale-chip" data-val="1">
-                <span class="scale-num">1</span>
-                <span class="scale-lbl">None / Novice</span>
-              </button>
-              <button type="button" class="scale-chip" data-val="2">
-                <span class="scale-num">2</span>
-                <span class="scale-lbl">Basic Exposure</span>
-              </button>
-              <button type="button" class="scale-chip" data-val="3">
-                <span class="scale-num">3</span>
-                <span class="scale-lbl">Casual / Hobby</span>
-              </button>
-              <button type="button" class="scale-chip" data-val="4">
-                <span class="scale-num">4</span>
-                <span class="scale-lbl">Moderate</span>
-              </button>
-              <button type="button" class="scale-chip" data-val="5">
-                <span class="scale-num">5</span>
-                <span class="scale-lbl">Formally Trained</span>
-              </button>
-            </div>
-            <input type="hidden" id="intake-training" name="musicalTraining" value="">
-          </div>
+          <div class="survey-section-title">Background</div>
+          <div id="intake-extra" class="survey-form"></div>
 
           <div id="intake-error" class="form-error-msg hidden">Please fill out all fields and make your selections before proceeding.</div>
 
@@ -197,47 +226,42 @@
       <!-- Injected via JavaScript dynamically -->
     </section>
 
-    <!-- PRE-REST SUBJECTIVE STATE SURVEY -->
-    <section class="wizard-stage hidden" id="stage-pre-survey">
+    <!-- GENERIC SURVEY STAGE (state checks, rest experience, final comparison) -->
+    <section class="wizard-stage hidden" id="stage-survey">
       <div class="wizard-card">
         <div class="card-header">
-          <span class="section-tag">STATE CHECK</span>
-          <h2>How are you feeling right now?</h2>
-          <p class="card-sub">Tell us how the fatigue-inducing test affected you before the breathing exercise.</p>
+          <span class="section-tag" id="survey-tag">STATE CHECK</span>
+          <h2 id="survey-title">How are you feeling right now?</h2>
+          <p class="card-sub" id="survey-desc"></p>
         </div>
 
-        <form id="form-pre-survey" class="survey-form">
-          <div class="survey-item">
-            <label class="survey-q">1. Be honest: How did that test leave your brain feeling right now? <span class="req">*</span></label>
-            <p class="survey-sub">Choose the response that best describes your immediate state after the stressor.</p>
-            <div class="choice-options" data-field="pre-state">
-              <button type="button" class="btn-choice" data-val="exhausted">Completely drained / Exhausted</button>
-              <button type="button" class="btn-choice" data-val="annoyed">Annoyed / Frustrated</button>
-              <button type="button" class="btn-choice" data-val="sharp">Still sharp / Ready for more</button>
-              <button type="button" class="btn-choice" data-val="neutral">Neutral</button>
-            </div>
-            <input type="hidden" id="val-pre-state" value="">
+        <form id="form-survey" class="survey-form" novalidate>
+          <div id="survey-questions" class="survey-form"></div>
+
+          <div class="form-group hidden" id="survey-comments-wrap">
+            <label for="survey-comments">Anything else you noticed about either break? (optional)</label>
+            <textarea id="survey-comments" class="input-textarea" maxlength="1000"></textarea>
           </div>
 
-          <div id="pre-survey-error" class="form-error-msg hidden">Please select one response before proceeding.</div>
+          <div id="survey-error" class="form-error-msg hidden">Please answer every question before continuing.</div>
 
-          <button type="submit" class="btn-primary-wide">
-            Save Response & Prepare for Breathing
+          <button type="submit" class="btn-primary-wide" id="btn-submit-survey">
+            Save &amp; Continue
           </button>
-          <button type="button" class="btn-ghost-sm pres-only-btn hidden" id="btn-skip-pre-survey-pres">
-            ⏭ Skip State Check (Demo Mode)
+          <button type="button" class="btn-ghost-sm pres-only-btn hidden" id="btn-skip-survey-pres">
+            ⏭ Skip Survey (Demo Auto-Fill)
           </button>
         </form>
       </div>
     </section>
 
-    <!-- BREATHING SANCTUARY (10 ROUNDS = 120s, OPTION TO SKIP AFTER 8 ROUNDS) -->
+    <!-- GUIDED REST (5 MINUTES, EYES CLOSED; SILENCE OR BREATHEBEAT AUDIO) -->
     <section class="wizard-stage hidden" id="stage-breathing">
       <div class="wizard-card text-center">
         <div class="card-header">
-          <span class="section-tag" id="breath-cycle-badge">ROUND 1 OF 10</span>
-          <h2>Diaphragmatic Breathing</h2>
-          <p class="card-sub">Close your eyes and breathe along with the flute and Tanpura drone (10 rounds total).</p>
+          <span class="section-tag" id="breath-cycle-badge">SILENT BREAK</span>
+          <h2 id="breath-title">Silent Break</h2>
+          <p class="card-sub" id="breath-instruction">Close your eyes and breathe slowly.</p>
         </div>
 
         <div class="canvas-container-sm">
@@ -245,86 +269,9 @@
         </div>
 
         <div class="breath-meta-status">
-          <span class="breath-cycle-counter" id="breath-round-label">Round 1 / 10</span>
-          <span class="breath-timer-remaining" id="breath-total-time">120s remaining</span>
+          <span class="breath-cycle-counter" id="breath-round-label"></span>
+          <span class="breath-timer-remaining" id="breath-total-time">180s remaining</span>
         </div>
-
-        <div class="breath-action-bar">
-          <button type="button" class="btn-ghost-sm hidden" id="btn-skip-breathing">
-            Continue to Recovery Check (Skip Remaining Rounds)
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- POST-REST SUBJECTIVE & EXPERIENCE EVALUATION (NO DEFAULT VALUES) -->
-    <section class="wizard-stage hidden" id="stage-post-survey">
-      <div class="wizard-card">
-        <div class="card-header">
-          <span class="section-tag">FINAL EVALUATION</span>
-          <h2>Post-Breathing Evaluation</h2>
-          <p class="card-sub">Answer four focused questions about your state and five-minute break experience.</p>
-        </div>
-
-        <form id="form-post-survey" class="survey-form">
-          <div class="survey-section-title">1. State Shift</div>
-
-          <div class="survey-item">
-            <label class="survey-q">1. Pick the word that best describes how you feel right now. <span class="req">*</span></label>
-            <p class="survey-sub">Choose the response that best captures your state after the break.</p>
-            <div class="choice-options" data-field="post-state">
-              <button type="button" class="btn-choice" data-val="refreshed">Refreshed &amp; Alert (Ready to focus)</button>
-              <button type="button" class="btn-choice" data-val="neutral">Neutral / No real change</button>
-              <button type="button" class="btn-choice" data-val="tired">Still mentally tired / Heavy headed</button>
-              <button type="button" class="btn-choice" data-val="bored">Bored / Restless</button>
-            </div>
-            <input type="hidden" id="val-post-state" value="">
-          </div>
-
-          <div class="survey-item">
-            <label class="survey-q">2. During that 5-minute break, what was your brain actually doing? <span class="req">*</span></label>
-            <div class="choice-options" data-field="mind-wandering">
-              <button type="button" class="btn-choice" data-val="audio-breath">Mostly focusing on the audio / my breath</button>
-              <button type="button" class="btn-choice" data-val="tasks">Thinking about assignments, coding, or random thoughts</button>
-              <button type="button" class="btn-choice" data-val="environment">Getting distracted by outside noises / environment</button>
-              <button type="button" class="btn-choice" data-val="timer">Waiting impatiently for the timer to end</button>
-            </div>
-            <input type="hidden" id="val-mind-wandering" value="">
-          </div>
-
-          <div class="survey-section-title">2. Break Experience</div>
-
-          <div class="survey-item">
-            <label class="survey-q">3. How did the 4-second inhale / 6-second exhale pace feel to you? <span class="req">*</span></label>
-            <div class="choice-options" data-field="breathing-pace">
-              <button type="button" class="btn-choice" data-val="natural">Natural and easy to follow</button>
-              <button type="button" class="btn-choice" data-val="slow">Uncomfortably slow (felt like I was running out of air)</button>
-              <button type="button" class="btn-choice" data-val="fast">Too fast</button>
-              <button type="button" class="btn-choice" data-val="confusing">Confusing to track</button>
-            </div>
-            <input type="hidden" id="val-breathing-pace" value="">
-          </div>
-
-          <div class="survey-item">
-            <label class="survey-q">4. During the break, what influenced your focus the most? <span class="req">*</span></label>
-            <div class="choice-options" data-field="focus-influence">
-              <button type="button" class="btn-choice" data-val="steady-track">Having a steady track to anchor my attention</button>
-              <button type="button" class="btn-choice" data-val="silence-wandering">The silence made my mind wander to other tasks</button>
-              <button type="button" class="btn-choice" data-val="outside-noise">Random outside noises in the room</button>
-              <button type="button" class="btn-choice" data-val="restless">I just couldn't sit still</button>
-            </div>
-            <input type="hidden" id="val-focus-influence" value="">
-          </div>
-
-          <div id="post-survey-error" class="form-error-msg hidden">Please answer all 4 questions before submitting.</div>
-
-          <button type="submit" class="btn-primary-wide">
-            Submit Final Session Data
-          </button>
-          <button type="button" class="btn-ghost-sm pres-only-btn hidden" id="btn-skip-post-survey-pres">
-            ⏭ Skip Final Survey (Generate Demo Results)
-          </button>
-        </form>
       </div>
     </section>
 
