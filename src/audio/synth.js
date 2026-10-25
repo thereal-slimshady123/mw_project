@@ -1,44 +1,56 @@
 /**
  * BREATHEBEAT Audio Engine
- * Powered by high-fidelity acoustic audio: new_audio_sample.mpeg
- * Exact 12-second diaphragmatic breathing cycle (4s Inhale, 2s Hold, 6s Exhale) in Raga Bhupali
+ * Drives the guided 4-6 breathing rest (4s Inhale, 6s Exhale) in one of two conditions:
+ *   - 'breathebeat': plays breathebeat_4-6.mp3 (3 min, 18 cycles). The breathing phase is
+ *     derived from the track's own playback position, so the visual guide can never drift
+ *     away from the audio.
+ *   - 'silence': no audio and no pacing. Participants rest with eyes closed and breathe slowly at
+ *     their own pace for the same 3 minutes (wall clock, phase reported as 'rest').
+ * Both conditions end with the same soft chime so participants know when to open their eyes.
  */
+
+export const REST_CONDITIONS = ['silence', 'breathebeat'];
 
 export class BreatheBeatAudio {
   constructor() {
-    this.audioSrc = new URL('../../new_audio_sample.mpeg', import.meta.url).href;
+    this.audioSrc = new URL('./breathebeat_4-6.mp3', import.meta.url).href;
     this.audio = null;
     this.ctx = null;
     this.gainNode = null;
     this.analyser = null;
     this.isCycleRunning = false;
-    this.volume = 0.8;
+    this.volume = 1.0;
     this.currentCycle = 1;
-    this.currentPhase = 'idle'; // 'inhale' | 'hold' | 'exhale' | 'idle'
+    this.currentPhase = 'idle'; // 'inhale' | 'exhale' | 'rest' | 'idle'
     this.onPhaseChangeCallback = null;
     this.onTickCallback = null;
+    this.onCompleteCallback = null;
     this.animFrameId = null;
     this.lastReportedPhase = null;
-    this.cycleStartTime = 0;
-    this.lastLoopTime = 0;
     this.isInitialized = false;
 
-    // Cycle duration configuration
-    this.cycleLength = 12.0; // 4s + 2s + 6s
+    this.mode = 'silence';
+    this.clockStart = 0;
+    this.elapsedSec = 0;
+    this.wasMuted = false; // set if volume hit 0 at any point during a BreatheBeat rest
+
+    // Cycle configuration (measured from the track: sound onsets every ~10.01s, first at ~0.05s)
     this.inhaleLen = 4.0;
-    this.holdLen = 2.0;
     this.exhaleLen = 6.0;
+    this.cycleLength = 10.0;
+    this.audioCyclePeriod = 10.011;
+    this.audioCycleOffset = 0.05;
+    this.totalRounds = 18; // 18 x 10s = 3 minutes, the full length of the track
   }
 
   /**
-   * Initializes audio elements and context on user gesture
+   * Initializes audio elements and context (must follow a user gesture)
    */
   async init() {
     if (this.isInitialized) return;
 
     try {
       this.audio = new Audio(this.audioSrc);
-      this.audio.loop = true;
       this.audio.preload = 'auto';
       this.audio.volume = this.volume;
 
@@ -49,7 +61,7 @@ export class BreatheBeatAudio {
         try {
           const source = this.ctx.createMediaElementSource(this.audio);
           this.gainNode = this.ctx.createGain();
-          this.gainNode.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+          this.gainNode.gain.setValueAtTime(1, this.ctx.currentTime);
           this.analyser = this.ctx.createAnalyser();
           this.analyser.fftSize = 256;
           this.analyser.smoothingTimeConstant = 0.8;
@@ -70,60 +82,66 @@ export class BreatheBeatAudio {
   }
 
   /**
-   * Starts or resumes the breathing audio loop and synchronized phase callbacks
-   * Supports both object configuration { totalRounds, onPhaseChange, onTick, onComplete }
-   * and legacy positional arguments (onPhaseChange, onTick, onComplete)
+   * Starts a guided breathing rest.
+   * @param {{ mode: 'silence'|'breathebeat', totalRounds?: number, onPhaseChange?, onTick?, onComplete? }} opts
    */
-  async startBreathingCycle(optsOrPhaseCallback = null, onTick = null, onComplete = null) {
-    let onPhaseChange = null;
-    let totalRounds = 10;
-    let onDone = null;
+  async startBreathingCycle(opts = {}) {
+    this.stopBreathingCycle();
 
-    if (typeof optsOrPhaseCallback === 'function') {
-      onPhaseChange = optsOrPhaseCallback;
-      onDone = onComplete;
-    } else if (optsOrPhaseCallback && typeof optsOrPhaseCallback === 'object') {
-      onPhaseChange = optsOrPhaseCallback.onPhaseChange;
-      onTick = optsOrPhaseCallback.onTick;
-      onDone = optsOrPhaseCallback.onComplete;
-      if (optsOrPhaseCallback.totalRounds) {
-        totalRounds = optsOrPhaseCallback.totalRounds;
-      }
-    }
-
-    this.totalRounds = totalRounds;
-    this.onPhaseChangeCallback = onPhaseChange;
-    this.onTickCallback = onTick;
-    this.onCompleteCallback = onDone;
-    this.isCycleRunning = true;
+    this.mode = opts.mode === 'breathebeat' ? 'breathebeat' : 'silence';
+    this.totalRounds = opts.totalRounds || 18;
+    this.onPhaseChangeCallback = opts.onPhaseChange || null;
+    this.onTickCallback = opts.onTick || null;
+    this.onCompleteCallback = opts.onComplete || null;
     this.currentCycle = 1;
     this.lastReportedPhase = null;
-    this.cycleStartTime = performance.now();
-    this.lastLoopTime = 0;
+    this.elapsedSec = 0;
+    this.wasMuted = this.mode === 'breathebeat' && this.volume === 0;
+    this.isCycleRunning = true;
 
-    await this.init();
-
-    if (this.ctx && this.ctx.state === 'suspended') {
-      await this.ctx.resume();
-    }
-
-    if (this.audio) {
-      this.audio.loop = false; // Programmatic cycle control ensures exact round sync
-      this.audio.currentTime = 0;
-      try {
-        await this.audio.play();
-      } catch (e) {
-        console.warn('Audio play request interrupted:', e);
+    if (this.mode === 'breathebeat') {
+      await this.init();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        await this.ctx.resume();
+      }
+      if (this.audio && this.isCycleRunning) {
+        this.audio.currentTime = 0;
+        try {
+          await this.audio.play();
+        } catch (e) {
+          console.warn('Audio play request interrupted:', e);
+        }
       }
     }
 
-    // Reset cycleStartTime right after audio plays to eliminate any startup latency
-    this.cycleStartTime = performance.now();
+    if (!this.isCycleRunning) {
+      // Stopped (e.g. skipped) while playback was starting
+      if (this.audio) this.audio.pause();
+      return;
+    }
+    this.clockStart = performance.now();
     this._startSyncLoop();
   }
 
   /**
-   * Continuous sync loop tracking exact 12-second rounds and session time
+   * Returns { cycle (1-based), timeInCycle } for the active clock
+   */
+  _currentPosition() {
+    if (this.mode === 'breathebeat' && this.audio) {
+      const t = Math.max(0, this.audio.currentTime - this.audioCycleOffset);
+      const cycleIndex = Math.floor(t / this.audioCyclePeriod);
+      // Map the track's slightly-longer-than-10s cycle onto the nominal 10s phase layout
+      const timeInCycle = ((t - cycleIndex * this.audioCyclePeriod) / this.audioCyclePeriod) * this.cycleLength;
+      return { cycle: cycleIndex + 1, timeInCycle, elapsed: this.audio.currentTime };
+    }
+
+    const elapsed = (performance.now() - this.clockStart) / 1000;
+    const cycleIndex = Math.floor(elapsed / this.cycleLength);
+    return { cycle: cycleIndex + 1, timeInCycle: elapsed - cycleIndex * this.cycleLength, elapsed };
+  }
+
+  /**
+   * Continuous sync loop reporting phase changes and per-frame progress
    */
   _startSyncLoop() {
     if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
@@ -131,97 +149,66 @@ export class BreatheBeatAudio {
     const update = () => {
       if (!this.isCycleRunning) return;
 
-      const now = performance.now();
-      let elapsedInRound = (now - this.cycleStartTime) / 1000;
+      const { cycle, timeInCycle, elapsed } = this._currentPosition();
+      this.elapsedSec = elapsed;
+      const audioEnded = this.mode === 'breathebeat' && this.audio && this.audio.ended;
 
-      // When round duration (12.0s) has completed
-      if (elapsedInRound >= this.cycleLength) {
-        if (this.currentCycle < this.totalRounds) {
-          // Advance to the next round
-          this.currentCycle++;
-          this.cycleStartTime = performance.now();
-          elapsedInRound = 0;
-          this.lastReportedPhase = null;
-
-          // Replay audio sample from the start for the new round
-          if (this.audio) {
-            try {
-              this.audio.currentTime = 0;
-              this.audio.play().catch(() => {});
-            } catch (e) {}
-          }
-        } else {
-          // Exactly 10 rounds completed!
-          this.stopBreathingCycle();
-          if (this.onCompleteCallback) {
-            this.onCompleteCallback({
-              totalCycles: this.totalRounds
-            });
-          }
-          return;
+      if (cycle > this.totalRounds || audioEnded) {
+        this.stopBreathingCycle();
+        if (this.onCompleteCallback) {
+          this.onCompleteCallback({ totalCycles: this.totalRounds });
         }
+        return;
       }
 
-      // Determine active breath phase within the 12-second round
-      let phase = 'inhale';
-      let phaseTime = elapsedInRound;
-      let phaseDuration = this.inhaleLen;
-      let label = 'Inhale';
-      let subtext = 'Arohana (Sa → Sa′)';
+      this.currentCycle = cycle;
 
-      if (elapsedInRound < this.inhaleLen) {
+      let phase, phaseTime, phaseDuration, label;
+      if (this.mode === 'silence') {
+        // Unpaced rest: one continuous phase, the cycle count only drives the 3-minute timer
+        phase = 'rest';
+        phaseTime = timeInCycle;
+        phaseDuration = this.cycleLength;
+        label = 'Rest';
+      } else if (timeInCycle < this.inhaleLen) {
         phase = 'inhale';
-        phaseTime = elapsedInRound;
+        phaseTime = timeInCycle;
         phaseDuration = this.inhaleLen;
         label = 'Inhale';
-        subtext = 'Arohana (Sa → Sa′)';
-      } else if (elapsedInRound < (this.inhaleLen + this.holdLen)) {
-        phase = 'hold';
-        phaseTime = elapsedInRound - this.inhaleLen;
-        phaseDuration = this.holdLen;
-        label = 'Hold';
-        subtext = 'Ga (Vadi Root Anchor)';
       } else {
         phase = 'exhale';
-        phaseTime = elapsedInRound - (this.inhaleLen + this.holdLen);
+        phaseTime = timeInCycle - this.inhaleLen;
         phaseDuration = this.exhaleLen;
         label = 'Exhale';
-        subtext = 'Avarohana (Sa′ → Sa)';
       }
 
       const phaseProgress = Math.min(Math.max(phaseTime / phaseDuration, 0), 1);
       const remainingSec = Math.max(0, Math.ceil(phaseDuration - phaseTime));
+      const totalElapsedSec = (cycle - 1) * this.cycleLength + timeInCycle;
+      const totalSecondsLeft = Math.max(0, Math.ceil(this.totalRounds * this.cycleLength - totalElapsedSec));
 
-      // Calculate total session time remaining (strictly in sync with round progress)
-      const totalSessionSec = this.totalRounds * this.cycleLength; // 120s
-      const totalElapsedSec = (this.currentCycle - 1) * this.cycleLength + Math.min(this.cycleLength, elapsedInRound);
-      const totalSecondsLeft = Math.max(0, Math.ceil(totalSessionSec - totalElapsedSec));
-
-      // Trigger phase transition callback if phase changed
-      if (phase !== this.lastReportedPhase) {
-        this.lastReportedPhase = phase;
+      const phaseKey = this.mode === 'silence' ? 'rest' : `${cycle}-${phase}`;
+      if (phaseKey !== this.lastReportedPhase) {
+        this.lastReportedPhase = phaseKey;
         this.currentPhase = phase;
         if (this.onPhaseChangeCallback) {
           this.onPhaseChangeCallback({
             phase,
             label,
-            subtext,
             duration: phaseDuration,
-            cycle: this.currentCycle,
+            cycle,
             totalCycles: this.totalRounds,
             totalSecondsLeft
           });
         }
       }
 
-      // Continuous tick for UI timers and smooth canvas sync
       if (this.onTickCallback) {
         this.onTickCallback({
           phase,
           phaseProgress,
           remainingSec,
-          currentTime: elapsedInRound,
-          cycle: this.currentCycle,
+          cycle,
           totalCycles: this.totalRounds,
           totalSecondsLeft
         });
@@ -234,7 +221,7 @@ export class BreatheBeatAudio {
   }
 
   /**
-   * Pauses the breathing cycle and audio
+   * Stops the breathing rest and audio
    */
   stopBreathingCycle() {
     this.isCycleRunning = false;
@@ -255,15 +242,54 @@ export class BreatheBeatAudio {
   }
 
   /**
-   * Adjusts volume smoothly across HTMLAudio and Web Audio gain
+   * Soft two-partial bell marking the end of a rest (identical in both conditions)
    */
+  async playChime() {
+    try {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        this.ctx = new AudioCtx();
+      }
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+
+      const now = this.ctx.currentTime;
+      const out = this.ctx.createGain();
+      out.gain.setValueAtTime(0.0001, now);
+      out.gain.exponentialRampToValueAtTime(0.35 * Math.max(this.volume, 0.05), now + 0.02);
+      out.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
+      out.connect(this.ctx.destination);
+
+      [528, 1056 * 1.5].forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        g.gain.setValueAtTime(i === 0 ? 1 : 0.25, now);
+        osc.connect(g);
+        g.connect(out);
+        osc.start(now);
+        osc.stop(now + 3.6);
+      });
+    } catch (e) {
+      console.warn('Chime playback failed:', e);
+    }
+  }
+
+  /**
+   * Seconds of rest actually completed in the most recent run
+   */
+  getElapsedSeconds() {
+    return Math.round(this.elapsedSec);
+  }
+
   setVolume(val) {
     this.volume = Math.max(0, Math.min(1, val));
     if (this.audio) {
       this.audio.volume = this.volume;
     }
-    if (this.gainNode && this.ctx) {
-      this.gainNode.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+    if (this.isCycleRunning && this.mode === 'breathebeat' && this.volume === 0) {
+      this.wasMuted = true;
     }
   }
 

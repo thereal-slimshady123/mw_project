@@ -1,7 +1,7 @@
 /**
  * Minimalist Breathing Visualizer
  * Gentle, low-contrast, relaxing visual cue for participants.
- * Just a simple, soothing orb with "Breathe", "Hold", and "Exhale".
+ * Just a simple, soothing orb with "Inhale" and "Exhale" (plus legacy "Hold").
  */
 
 export class BreathingVisualizer {
@@ -91,7 +91,7 @@ export class BreathingVisualizer {
     if (this.phase === 'inhale') {
       const ease = 0.5 - Math.cos(tProgress * Math.PI) / 2;
       breathScale = ease;
-      label = 'Breathe';
+      label = 'Inhale';
       baseColor = 'rgba(215, 228, 238, ';
     } else if (this.phase === 'hold') {
       breathScale = 1.0;
@@ -102,6 +102,11 @@ export class BreathingVisualizer {
       breathScale = ease;
       label = 'Exhale';
       baseColor = 'rgba(218, 230, 222, ';
+    } else if (this.phase === 'rest') {
+      // Unpaced silent rest: a very slow, non-rhythmic shimmer so it never implies a breathing pace
+      breathScale = 0.35 + 0.05 * Math.sin(performance.now() / 9000);
+      label = 'Eyes closed';
+      baseColor = 'rgba(226, 232, 240, ';
     } else {
       breathScale = 0.25;
       label = 'Breathe';
@@ -139,7 +144,7 @@ export class BreathingVisualizer {
     this.ctx.arc(cx, cy, currentRadius * 0.85, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Simple, calm typography: just "Breathe", "Hold", or "Exhale"
+    // Simple, calm typography: just "Inhale", "Exhale" (or idle "Breathe")
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillStyle = 'rgba(241, 245, 249, 0.85)';

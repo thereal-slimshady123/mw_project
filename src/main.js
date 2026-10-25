@@ -1,13 +1,20 @@
 /**
  * BREATHEBEAT — Main Study Orchestrator
- * Fully automated, sequential participant evaluation protocol in Raga Bhupali.
- * 
- * Features:
- * - No default answers / placeholders; requires genuine participant choices
- * - Inter-stage transition window with 10s countdown, explanation of next stage, and "Continue to Next Round" button
- * - Extended 12-trial Stroop tests and 45-second arithmetic sections
- * - 5 complete rounds (60s) of diaphragmatic breathing with no skip button
- * - Streamlined, noise-resistant metrics logged silently to Google Sheets & localStorage
+ * Within-subject comparison of two 3-minute eyes-closed rests after a cognitive stressor:
+ *   - Silence: rest in silence, breathing slowly at one's own pace
+ *   - BreatheBeat: breathe in sync with the 4-6 (4s inhale / 6s exhale) BreatheBeat audio
+ *
+ * Every participant completes BOTH conditions. Condition order is randomised per participant
+ * (counterbalancing order / practice effects) and recorded with the data.
+ *
+ * Protocol:
+ *   Study Overview → Intake → Baseline Stroop (practice + baseline)
+ *   → Part 1 [ Stressor Math → Pre-Rest Stroop → State Check → Rest → Post-Rest Stroop → State & Experience Check ]
+ *   → Part 2 [ same, other condition ]
+ *   → Final Comparison → Complete
+ *
+ * Pre- and post-rest measures within each part are symmetric (Stroop then identical state items),
+ * so each condition yields a clean pre→post change score.
  */
 
 import { synth } from './audio/synth.js';
@@ -15,6 +22,40 @@ import { BreathingVisualizer } from './components/breathingVisualizer.js';
 import { StroopTask } from './tests/stroop.js';
 import { FatigueInducer } from './tests/fatigue.js';
 import { recordStudySession } from './data/sheetService.js';
+import {
+  INTAKE_QUESTIONS,
+  STATE_QUESTIONS,
+  FINAL_QUESTIONS,
+  getRestExperienceQuestions,
+  renderQuestions,
+  collectAnswers
+} from './data/questions.js';
+
+const PROTOCOL_VERSION = '2.1-silence-vs-breathebeat';
+const STROOP_TRIALS = 12;
+const MATH_SECONDS = 45;
+const REST_ROUNDS = 18; // 18 x 10s = 3 minutes (full BreatheBeat track)
+
+const CONDITION_INFO = {
+  silence: {
+    name: 'Silent Break',
+    lowerName: 'silent break',
+    tag: 'SILENT BREAK',
+    color: '#a78bfa',
+    restInstruction: 'Close your eyes and rest in silence. Breathe slowly and comfortably at your own pace. There is nothing to count or follow. Keep your eyes closed for the full 3 minutes. A soft chime will tell you when the break is over.',
+    restScreen: 'Keep your eyes closed and breathe slowly at your own pace. A soft chime will mark the end.'
+  },
+  breathebeat: {
+    name: 'Audio Break (BreatheBeat)',
+    lowerName: 'audio break',
+    tag: 'AUDIO BREAK',
+    color: '#34d399',
+    restInstruction: 'Put on your headphones if you have them. When you press Start, the audio begins. Please close your eyes and breathe in sync with the audio: INHALE through your nose during the first, shorter sound (4 seconds), then EXHALE slowly during the second, longer sound (6 seconds). Keep your eyes closed and stay in sync for the full 3 minutes. A soft chime will tell you when the break is over.',
+    restScreen: 'Please close your eyes and breathe in sync with the audio: inhale on the short sound, exhale on the long sound.'
+  }
+};
+
+const NO_DEVICES_NOTE = 'Please put your phone aside and do not use other apps during the break.';
 
 class BreatheBeatApp {
   constructor() {
@@ -22,81 +63,73 @@ class BreatheBeatApp {
     this.transitionTimerId = null;
     this.transitionSecondsLeft = 10;
     this.onTransitionProceed = null;
-
-    this.breathingTimerId = null;
     this.currentActiveTask = null;
+    this.activeSurvey = null;
 
-    // Presentation Mode & Stage Tracking
+    // Presentation Mode & Step Tracking
     this.isPresentationMode = false;
-    this.currentStageId = 'stage-intake';
-    this.currentStepLabel = '1. Participant Intake';
-    this.currentStageIndex = 0; // 0: Intake, 1: Base Stroop, 2: Pre Math, 3: Pre Survey, 4: Breathing, 5: Rec Stroop, 6: Rec Math, 7: Post Survey, 8: Complete
-    this.currentTaskType = null; // 'baseline-stroop' | 'pre-math' | 'recovery-stroop' | 'recovery-math'
+    this.currentStageId = 'stage-overview';
+    this.currentStepLabel = 'Welcome';
+    this.currentStepIndex = 0;
 
-    // Fresh Participant Session State (No pre-filled defaults)
     this.session = this.getFreshSessionState();
+    this.steps = this.buildSteps();
 
     this.init();
   }
 
   getFreshSessionState() {
+    const conditionOrder = Math.random() < 0.5 ? ['silence', 'breathebeat'] : ['breathebeat', 'silence'];
+    const sessionId = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
     return {
+      sessionId,
+      protocolVersion: PROTOCOL_VERSION,
+      isDemo: false,
+      completedAt: '',
+
       // Intake
       name: '',
       rollNumber: '',
-      isMusicWorkshop: '',
-      musicalTraining: '',
       age: '',
+      isMusicWorkshop: '',
+      intake: {},
 
-      // Pre-Breathing Focus & Fatigue
-      baselineRT: 0,
-      baselineCongruentRT: 0,
-      baselineIncongruentRT: 0,
-      baselineInterference: 0,
-      baselineAcc: 100,
+      conditionOrder,
+      baselineStroop: null,
 
-      preMathAcc: 0,
-      preMathTotal: 0,
-      preMathRT: 0,
+      blocks: conditionOrder.map((condition, i) => ({
+        condition,
+        position: i + 1,
+        stressorMath: null,
+        preStroop: null,
+        preState: null,
+        restSeconds: 0,
+        restCompleted: false,
+        audioMuted: false,
+        postStroop: null,
+        postState: null,
+        experience: null
+      })),
 
-      preFatigue: '',
-      preStress: '',
-      preFocus: '',
-      preState: '',
-      preFatigueScore: 0,
-
-      // Post-Breathing Focus & Fatigue
-      recoveryRT: 0,
-      recoveryCongruentRT: 0,
-      recoveryIncongruentRT: 0,
-      recoveryInterference: 0,
-      recoveryAcc: 100,
-
-      postMathAcc: 0,
-      postMathTotal: 0,
-      postMathRT: 0,
-
-      postFatigue: '',
-      postStress: '',
-      postFocus: '',
-      postState: '',
-      mindWandering: '',
-      breathingPace: '',
-      focusInfluence: '',
-      postFatigueScore: 0,
-
-      // Experience & Feedback
-      breathingEase: '',
-      audioPleasantness: '',
-      qualitativeFeedback: '',
-
-      // Computed Deltas & Recovery
-      stroopSpeedup: 0,
-      interferenceReduction: 0,
-      mathAccuracyDelta: 0,
-      subjectiveRelief: 0,
-      recoveryScore: 100
+      final: {},
+      comments: ''
     };
+  }
+
+  /**
+   * Linear list of every step in the session (drives navigation and presentation-mode skipping)
+   */
+  buildSteps() {
+    const steps = [{ type: 'overview' }, { type: 'intake' }, { type: 'baseline-stroop' }];
+    [0, 1].forEach(b => {
+      ['math', 'pre-stroop', 'pre-survey', 'rest', 'post-stroop', 'post-survey']
+        .forEach(type => steps.push({ type, b }));
+    });
+    steps.push({ type: 'final-survey' }, { type: 'complete' });
+    return steps;
   }
 
   init() {
@@ -104,13 +137,24 @@ class BreatheBeatApp {
     this.wirePresentationMode();
     this.wireIntakeForm();
     this.wireTransitionButton();
-    this.wirePreSurvey();
-    this.wireBreathingStage();
-    this.wirePostSurvey();
+    this.wireOverview();
+    this.wireSurveyForm();
     this.wireRestartButton();
 
-    // Start on Stage 1 (Intake)
-    this.showStage('stage-intake', '1. Participant Intake');
+    this.showStage('stage-overview', 'Welcome');
+  }
+
+  /* ==========================================================================
+     Labels
+     ========================================================================== */
+  blockLabel(b) {
+    const block = this.session.blocks[b];
+    return `Part ${b + 1} of 2 · ${CONDITION_INFO[block.condition].name}`;
+  }
+
+  blockTag(b) {
+    const block = this.session.blocks[b];
+    return `PART ${b + 1} OF 2 · ${CONDITION_INFO[block.condition].tag}`;
   }
 
   /* ==========================================================================
@@ -119,12 +163,6 @@ class BreatheBeatApp {
   showStage(stageId, stepLabel) {
     this.currentStageId = stageId;
     this.currentStepLabel = stepLabel || stageId;
-
-    if (stageId === 'stage-intake') this.currentStageIndex = 0;
-    else if (stageId === 'stage-pre-survey') this.currentStageIndex = 3;
-    else if (stageId === 'stage-breathing') this.currentStageIndex = 4;
-    else if (stageId === 'stage-post-survey') this.currentStageIndex = 7;
-    else if (stageId === 'stage-complete') this.currentStageIndex = 8;
 
     document.querySelectorAll('.wizard-stage').forEach(el => {
       el.classList.add('hidden');
@@ -144,24 +182,117 @@ class BreatheBeatApp {
     this.updatePresenterBar();
   }
 
+  /**
+   * Runs a step directly (no transition screen)
+   */
+  runStep(index) {
+    this.currentStepIndex = index;
+    const step = this.steps[index];
+
+    switch (step.type) {
+      case 'overview': return this.showStage('stage-overview', 'Welcome');
+      case 'intake': return this.showStage('stage-intake', '1. Participant Intake');
+      case 'baseline-stroop': return this.startBaselineStroop();
+      case 'math': return this.startStressorMath(step.b);
+      case 'pre-stroop': return this.startBlockStroop(step.b, 'pre');
+      case 'pre-survey': return this.startPreSurvey(step.b);
+      case 'rest': return this.startRest(step.b);
+      case 'post-stroop': return this.startBlockStroop(step.b, 'post');
+      case 'post-survey': return this.startPostSurvey(step.b);
+      case 'final-survey': return this.startFinalSurvey();
+      case 'complete': return this.completeSession();
+    }
+  }
+
+  /**
+   * Advances to the next step, via an explanatory transition screen where one is useful
+   */
+  advance() {
+    const nextIndex = this.currentStepIndex + 1;
+    const next = this.steps[nextIndex];
+    if (!next) return;
+
+    const intro = this.getTransitionInfo(next);
+    if (intro) {
+      this.currentStepIndex = nextIndex;
+      const color = next.b !== undefined ? CONDITION_INFO[this.session.blocks[next.b].condition].color : '';
+      this.showTransition({ ...intro, color, onProceed: () => this.runStep(nextIndex) });
+    } else {
+      this.runStep(nextIndex);
+    }
+  }
+
+  getTransitionInfo(step) {
+    const stroopDesc = 'You will see color words (RED, GREEN, BLUE, YELLOW) printed in colored ink. Tap the INK COLOR of each word, not the word itself, as quickly and accurately as possible.';
+
+    switch (step.type) {
+      case 'baseline-stroop':
+        return {
+          badge: 'WARM-UP · BASELINE FOCUS',
+          title: 'Baseline Focus Check (Stroop Task)',
+          desc: stroopDesc
+        };
+      case 'math': {
+        const info = CONDITION_INFO[this.session.blocks[step.b].condition];
+        return {
+          badge: `${this.blockTag(step.b)} · STRESS TASK`,
+          title: `Part ${step.b + 1} of 2: ${info.name}`,
+          desc: `This part ends with a 3-minute ${info.lowerName}. First, solve rapid mental arithmetic questions under time pressure for ${MATH_SECONDS} seconds. Answer as many as you can correctly.`,
+          autoAdvance: false,
+          buttonText: `Start Part ${step.b + 1}`
+        };
+      }
+      case 'pre-stroop':
+        return {
+          badge: `${this.blockTag(step.b)} · FOCUS CHECK`,
+          title: 'Focus Check (Before the Break)',
+          desc: stroopDesc
+        };
+      case 'rest': {
+        const info = CONDITION_INFO[this.session.blocks[step.b].condition];
+        return {
+          badge: `${this.blockTag(step.b)} · 3-MINUTE BREAK`,
+          title: `${info.name}: Instructions`,
+          desc: `${info.restInstruction} ${NO_DEVICES_NOTE}`,
+          autoAdvance: false,
+          buttonText: 'Start the 3-Minute Break'
+        };
+      }
+      case 'post-stroop':
+        return {
+          badge: `${this.blockTag(step.b)} · FOCUS CHECK`,
+          title: 'The break is over. Please open your eyes.',
+          desc: `Next is a short focus check. ${stroopDesc} Press the button when you are ready.`,
+          autoAdvance: false,
+          buttonText: 'I am ready'
+        };
+      default:
+        return null;
+    }
+  }
+
   /* ==========================================================================
-     Universal Inter-Stage Transition (10-second countdown + next section info)
+     Universal Inter-Stage Transition (optional 10-second countdown)
      ========================================================================== */
   wireTransitionButton() {
     const continueBtn = document.getElementById('btn-continue-round');
     if (continueBtn) {
       continueBtn.addEventListener('click', () => {
         this.clearTransitionTimer();
-        if (this.onTransitionProceed) {
-          const fn = this.onTransitionProceed;
-          this.onTransitionProceed = null;
-          fn();
-        }
+        this.fireTransitionProceed();
       });
     }
   }
 
-  showTransition({ badge, title, desc, onProceed }) {
+  fireTransitionProceed() {
+    if (this.onTransitionProceed) {
+      const fn = this.onTransitionProceed;
+      this.onTransitionProceed = null;
+      fn();
+    }
+  }
+
+  showTransition({ badge, title, desc, onProceed, color = '', autoAdvance = true, buttonText = 'Continue to Next Round' }) {
     this.clearTransitionTimer();
     this.onTransitionProceed = onProceed;
 
@@ -171,10 +302,21 @@ class BreatheBeatApp {
     const digitsEl = document.getElementById('trans-timer-val');
     const noteSecEl = document.getElementById('trans-note-sec');
     const progressCircle = document.getElementById('trans-ring-progress');
+    const countdownWrap = document.querySelector('#stage-transition .relax-countdown-wrap');
+    const continueBtn = document.getElementById('btn-continue-round');
 
-    if (badgeEl) badgeEl.textContent = badge || 'UPCOMING STAGE';
+    if (badgeEl) {
+      badgeEl.textContent = badge || 'UPCOMING STAGE';
+      badgeEl.style.color = color;
+      badgeEl.style.background = color ? `${color}1a` : '';
+    }
     if (titleEl) titleEl.textContent = title || 'Next Round';
     if (descEl) descEl.textContent = desc || 'Prepare for the upcoming section.';
+    if (continueBtn) continueBtn.textContent = buttonText;
+    if (countdownWrap) countdownWrap.classList.toggle('hidden', !autoAdvance);
+
+    this.showStage('stage-transition', badge || 'Upcoming Stage');
+    if (!autoAdvance) return;
 
     this.transitionSecondsLeft = 10;
     const totalCircumference = 339.292; // 2 * PI * 54
@@ -189,7 +331,6 @@ class BreatheBeatApp {
     };
 
     updateRing();
-    this.showStage('stage-transition', badge || 'Upcoming Stage');
 
     this.transitionTimerId = setInterval(() => {
       this.transitionSecondsLeft--;
@@ -197,11 +338,7 @@ class BreatheBeatApp {
 
       if (this.transitionSecondsLeft <= 0) {
         this.clearTransitionTimer();
-        if (this.onTransitionProceed) {
-          const fn = this.onTransitionProceed;
-          this.onTransitionProceed = null;
-          fn();
-        }
+        this.fireTransitionProceed();
       }
     }, 1000);
   }
@@ -219,7 +356,7 @@ class BreatheBeatApp {
   wireHeaderAudio() {
     const volumeSlider = document.getElementById('global-volume');
     const muteBtn = document.getElementById('btn-audio-mute');
-    let previousVolume = 0.8;
+    let previousVolume = 1.0;
 
     if (volumeSlider) {
       volumeSlider.addEventListener('input', (e) => {
@@ -239,7 +376,7 @@ class BreatheBeatApp {
           if (volumeSlider) volumeSlider.value = 0;
           this.updateMuteIcon(true);
         } else {
-          const restored = previousVolume || 0.8;
+          const restored = previousVolume || 1.0;
           synth.setVolume(restored);
           if (volumeSlider) volumeSlider.value = restored;
           this.updateMuteIcon(false);
@@ -271,13 +408,18 @@ class BreatheBeatApp {
   }
 
   /* ==========================================================================
-     STAGE 1: Participant Intake Form (No Pre-filled Defaults)
+     Participant Intake
      ========================================================================== */
   wireIntakeForm() {
     const form = document.getElementById('form-intake');
     if (!form) return;
 
     const errorMsg = document.getElementById('intake-error');
+    const extra = document.getElementById('intake-extra');
+    if (extra) {
+      renderQuestions(extra, INTAKE_QUESTIONS);
+      extra.addEventListener('answer', () => errorMsg && errorMsg.classList.add('hidden'));
+    }
 
     // Toggle Music Workshop Course (Yes/No)
     const mwButtons = form.querySelectorAll('.pill-choice');
@@ -291,36 +433,18 @@ class BreatheBeatApp {
       });
     });
 
-    // Musical Training Scale Chips (1-5)
-    const trainingChips = form.querySelectorAll('.scale-chip');
-    const trainingInput = document.getElementById('intake-training');
-    trainingChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        trainingChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        if (trainingInput) trainingInput.value = chip.getAttribute('data-val');
-        if (errorMsg) errorMsg.classList.add('hidden');
-      });
-    });
-
-    // Submit Intake
     form.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const nameInput = document.getElementById('intake-name');
-      const rollInput = document.getElementById('intake-roll');
-      const ageInput = document.getElementById('intake-age');
-
-      const name = nameInput ? nameInput.value.trim() : '';
-      const roll = rollInput ? rollInput.value.trim() : '';
-      const age = ageInput ? parseInt(ageInput.value, 10) : NaN;
+      const name = document.getElementById('intake-name')?.value.trim() || '';
+      const roll = document.getElementById('intake-roll')?.value.trim() || '';
+      const age = parseInt(document.getElementById('intake-age')?.value, 10);
       const mw = mwInput ? mwInput.value : '';
-      const training = trainingInput ? trainingInput.value : '';
+      const { answers, missing } = collectAnswers(extra, INTAKE_QUESTIONS);
 
-      // Validation: Enforce all inputs
-      if (!name || !roll || isNaN(age) || age < 10 || !mw || !training) {
+      if (!name || !roll || isNaN(age) || age < 10 || !mw || missing.length) {
         if (errorMsg) {
-          errorMsg.textContent = 'Please fill out all fields and select both your course enrollment and training level.';
+          errorMsg.textContent = 'Please fill out all fields and answer every background question.';
           errorMsg.classList.remove('hidden');
         }
         return;
@@ -332,204 +456,243 @@ class BreatheBeatApp {
       this.session.rollNumber = roll;
       this.session.age = age;
       this.session.isMusicWorkshop = mw;
-      this.session.musicalTraining = parseInt(training, 10);
+      this.session.intake = answers;
 
-      // Transition to Stage 2: Baseline Stroop Task
-      this.showTransition({
-        badge: 'STAGE 1 OF 7 · BASELINE FOCUS',
-        title: 'Baseline Focus Check (Stroop Task)',
-        desc: 'In this section, you will see color words (RED, GREEN, BLUE, YELLOW) printed in colored ink. Your goal is to identify the INK COLOR of each word, not the word itself. Tap the matching color button as quickly and accurately as possible.',
-        onProceed: () => this.startBaselineStroop()
-      });
+      this.advance();
     });
   }
 
   /* ==========================================================================
-     STAGE 2: Baseline Stroop Task (12 Trials)
+     Stroop Tasks (baseline, and pre/post rest in each part)
      ========================================================================== */
-  startBaselineStroop() {
-    this.currentStageIndex = 1;
-    this.currentTaskType = 'baseline-stroop';
-    this.showStage('stage-task-mount', 'Stage 1 · Baseline Focus Check');
+  mountStroop({ tag, tagStyle = '', title, sub, label, onComplete }) {
+    this.showStage('stage-task-mount', label);
 
     const mount = document.getElementById('stage-task-mount');
     mount.innerHTML = `
       <div class="wizard-card">
         <div class="card-header">
-          <span class="section-tag">BASELINE EVALUATION</span>
-          <h2>Color Focus Check</h2>
-          <p class="card-sub">Select the <strong>INK COLOR</strong> of the word as quickly and accurately as possible.</p>
+          <span class="section-tag" style="${tagStyle}">${tag}</span>
+          <h2>${title}</h2>
+          <p class="card-sub">${sub}</p>
         </div>
         <div id="stroop-mount-point"></div>
       </div>
     `;
 
-    const container = document.getElementById('stroop-mount-point');
     this.currentActiveTask = new StroopTask({
-      container,
-      totalTrials: 12, // Increased questions for robust data
+      container: document.getElementById('stroop-mount-point'),
+      totalTrials: STROOP_TRIALS,
       onComplete: (data) => {
-        this.session.baselineRT = data.meanRT;
-        this.session.baselineCongruentRT = data.meanCongruentRT;
-        this.session.baselineIncongruentRT = data.meanIncongruentRT;
-        this.session.baselineInterference = data.stroopEffect;
-        this.session.baselineAcc = data.accuracy;
-
-        // Transition to Pre-Breathing Math Task
-        this.showTransition({
-          badge: 'STAGE 2 OF 7 · FATIGUE INDUCER',
-          title: 'Arithmetic Challenge',
-          desc: 'In this section, you will solve rapid mental arithmetic questions (addition, subtraction, multiplication, and clean division) under time pressure. Solve as many questions correctly as you can.',
-          onProceed: () => this.startPreMath()
-        });
+        const { logs, ...summary } = data;
+        onComplete(summary);
+        this.advance();
       }
     });
     this.currentActiveTask.start();
   }
 
+  startBaselineStroop() {
+    this.mountStroop({
+      tag: 'BASELINE',
+      title: 'Color Focus Check',
+      sub: 'Select the <strong>INK COLOR</strong> of the word as quickly and accurately as possible.',
+      label: 'Warm-up · Baseline Focus Check',
+      onComplete: (summary) => { this.session.baselineStroop = summary; }
+    });
+  }
+
+  startBlockStroop(b, when) {
+    const block = this.session.blocks[b];
+    const color = CONDITION_INFO[block.condition].color;
+    this.mountStroop({
+      tag: `${this.blockTag(b)} · ${when === 'pre' ? 'BEFORE BREAK' : 'AFTER BREAK'}`,
+      tagStyle: `color: ${color}; background: ${color}1a;`,
+      title: 'Color Focus Check',
+      sub: 'Select the <strong>INK COLOR</strong> of the word as quickly and accurately as possible.',
+      label: `${this.blockLabel(b)} · Focus Check`,
+      onComplete: (summary) => {
+        if (when === 'pre') block.preStroop = summary;
+        else block.postStroop = summary;
+      }
+    });
+  }
+
   /* ==========================================================================
-     STAGE 3: Pre-Breathing Arithmetic Task (45 Seconds Timed)
+     Study Overview (explains both conditions up front)
      ========================================================================== */
-  startPreMath() {
-    this.currentStageIndex = 2;
-    this.currentTaskType = 'pre-math';
-    this.showStage('stage-task-mount', 'Stage 2 · Working Memory Challenge');
+  wireOverview() {
+    const btn = document.getElementById('btn-start-study');
+    if (btn) btn.addEventListener('click', () => this.advance());
+  }
+
+  /* ==========================================================================
+     Stressor: Timed Arithmetic
+     ========================================================================== */
+  startStressorMath(b) {
+    this.showStage('stage-task-mount', `${this.blockLabel(b)} · Stress Task`);
 
     const mount = document.getElementById('stage-task-mount');
     mount.innerHTML = `
       <div class="wizard-card">
         <div class="card-header">
-          <span class="section-tag" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">FATIGUE INDUCER</span>
+          <span class="section-tag" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">${this.blockTag(b)} · STRESS TASK</span>
           <h2>Rapid Arithmetic Challenge</h2>
-          <p class="card-sub">Answer arithmetic questions under brief time pressure (45 seconds total).</p>
+          <p class="card-sub">Answer arithmetic questions under time pressure (${MATH_SECONDS} seconds total).</p>
         </div>
         <div id="math-mount-point"></div>
       </div>
     `;
 
-    const container = document.getElementById('math-mount-point');
     this.currentActiveTask = new FatigueInducer({
-      container,
-      durationSeconds: 45, // Increased overall duration
-      questionTimeLimit: 7.0, // Comfortable 7s per question
+      container: document.getElementById('math-mount-point'),
+      durationSeconds: MATH_SECONDS,
+      questionTimeLimit: 7.0,
       onComplete: (data) => {
-        this.session.preMathAcc = data.accuracy;
-        this.session.preMathTotal = data.totalQuestions;
-        this.session.preMathRT = data.meanRt;
-
-        // Transition to Pre-Breathing Survey
-        this.showTransition({
-          badge: 'STAGE 3 OF 7 · STATE CHECK',
-          title: 'Mid-Session State Check',
-          desc: 'Answer one quick question about how the stress test left you before starting the guided breathing exercise.',
-          onProceed: () => this.startPreSurvey()
-        });
+        this.session.blocks[b].stressorMath = {
+          accuracy: data.accuracy,
+          totalQuestions: data.totalQuestions,
+          meanRt: data.meanRt
+        };
+        this.advance();
       }
     });
     this.currentActiveTask.start();
   }
 
   /* ==========================================================================
-     STAGE 4: Pre-Breathing Subjective Survey (1-5 scales, No Defaults)
+     Generic Survey Stage
      ========================================================================== */
-  wirePreSurvey() {
-    const form = document.getElementById('form-pre-survey');
+  wireSurveyForm() {
+    const form = document.getElementById('form-survey');
     if (!form) return;
 
-    const errorMsg = document.getElementById('pre-survey-error');
-    this.wireChoiceButtonRows(form, errorMsg);
+    const errorMsg = document.getElementById('survey-error');
+    const container = document.getElementById('survey-questions');
+    container.addEventListener('answer', () => errorMsg && errorMsg.classList.add('hidden'));
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      if (!this.activeSurvey) return;
 
-      const stateVal = document.getElementById('val-pre-state').value;
-
-      if (!stateVal) {
+      const { answers, missing } = collectAnswers(container, this.activeSurvey.questions);
+      if (missing.length) {
         if (errorMsg) {
-          errorMsg.textContent = 'Please select one response before proceeding.';
+          errorMsg.textContent = `Please answer every question before continuing (${missing.length} left).`;
           errorMsg.classList.remove('hidden');
         }
         return;
       }
 
       if (errorMsg) errorMsg.classList.add('hidden');
+      const comments = document.getElementById('survey-comments')?.value.trim() || '';
+      const survey = this.activeSurvey;
+      this.activeSurvey = null;
+      survey.onSubmit(answers, comments);
+      this.advance();
+    });
 
-      const preStateScores = { sharp: 1, neutral: 2, annoyed: 3, exhausted: 4 };
-      const score = preStateScores[stateVal] || 0;
-      this.session.preState = stateVal;
-      this.session.preFatigue = score;
-      this.session.preStress = score;
-      this.session.preFocus = score;
-      this.session.preFatigueScore = score;
+    const skipBtn = document.getElementById('btn-skip-survey-pres');
+    if (skipBtn) skipBtn.addEventListener('click', () => this.skipCurrentStage());
+  }
 
-      // Transition to Stage 4: Breathing (10 Rounds, option to skip after 8)
-      this.showTransition({
-        badge: 'STAGE 4 OF 7 · GUIDED BREATHING',
-        title: 'Diaphragmatic Breathing (10 Rounds)',
-        desc: 'You will now practice diaphragmatic 4-2-6 breathing (4s Inhale, 2s Hold, 6s Exhale) for up to 10 rounds (2 minutes), with an option to proceed after 8 rounds are completed. Close your eyes, listen to the acoustic Bansuri flute and Tanpura drone, and let the music guide your breath naturally.',
-        onProceed: () => this.startBreathingStage()
-      });
+  showSurvey({ tag, tagColor, title, desc, label, questions, showComments = false, onSubmit }) {
+    this.activeSurvey = { questions, onSubmit };
+
+    const tagEl = document.getElementById('survey-tag');
+    if (tagEl) {
+      tagEl.textContent = tag;
+      tagEl.style.color = tagColor || '';
+      tagEl.style.background = tagColor ? `${tagColor}1a` : '';
+    }
+    document.getElementById('survey-title').textContent = title;
+    document.getElementById('survey-desc').textContent = desc;
+    document.getElementById('survey-error')?.classList.add('hidden');
+
+    const commentsWrap = document.getElementById('survey-comments-wrap');
+    const commentsInput = document.getElementById('survey-comments');
+    if (commentsWrap) commentsWrap.classList.toggle('hidden', !showComments);
+    if (commentsInput) commentsInput.value = '';
+
+    renderQuestions(document.getElementById('survey-questions'), questions);
+    this.showStage('stage-survey', label);
+  }
+
+  startPreSurvey(b) {
+    const block = this.session.blocks[b];
+    this.showSurvey({
+      tag: `${this.blockTag(b)} · CHECK-IN`,
+      tagColor: CONDITION_INFO[block.condition].color,
+      title: 'How are you feeling right now?',
+      desc: 'Answer based on how you feel at this moment, after the arithmetic task.',
+      label: `${this.blockLabel(b)} · Check-in`,
+      questions: STATE_QUESTIONS,
+      onSubmit: (answers) => { block.preState = answers; }
     });
   }
 
-  startPreSurvey() {
-    this.currentStageIndex = 3;
-    this.showStage('stage-pre-survey', 'Stage 3 · State Check');
-  }
+  startPostSurvey(b) {
+    const block = this.session.blocks[b];
+    const info = CONDITION_INFO[block.condition];
+    const experienceQs = getRestExperienceQuestions(block.condition);
+    const questions = [...STATE_QUESTIONS, ...experienceQs];
 
-  /* Helper to wire 1-5 scale button rows */
-  wireScaleButtonRows(container, errorEl = null) {
-    const rows = container.querySelectorAll('.scale-buttons-row');
-    rows.forEach(row => {
-      const fieldName = row.getAttribute('data-field');
-      const hiddenInput = document.getElementById(`val-${fieldName}`);
-      const buttons = row.querySelectorAll('.btn-scale');
-
-      buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          buttons.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const val = btn.getAttribute('data-val');
-          if (hiddenInput) hiddenInput.value = val;
-          if (errorEl) errorEl.classList.add('hidden');
-        });
-      });
+    this.showSurvey({
+      tag: `${this.blockTag(b)} · AFTER THE BREAK`,
+      tagColor: info.color,
+      title: `How are you feeling after the ${info.lowerName}?`,
+      desc: `Questions 1–2 are about how you feel right now. The rest are about the ${info.lowerName} you just took.`,
+      label: `${this.blockLabel(b)} · Check-in`,
+      questions,
+      onSubmit: (answers) => {
+        block.postState = {};
+        block.experience = {};
+        STATE_QUESTIONS.forEach(q => { block.postState[q.id] = answers[q.id]; });
+        experienceQs.forEach(q => { block.experience[q.id] = answers[q.id]; });
+      }
     });
   }
 
-  wireChoiceButtonRows(container, errorEl = null) {
-    const rows = container.querySelectorAll('.choice-options');
-    rows.forEach(row => {
-      const fieldName = row.getAttribute('data-field');
-      const hiddenInput = document.getElementById(`val-${fieldName}`);
-      const buttons = row.querySelectorAll('.btn-choice');
-
-      buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          buttons.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          if (hiddenInput) hiddenInput.value = btn.getAttribute('data-val') || '';
-          if (errorEl) errorEl.classList.add('hidden');
-        });
-      });
+  startFinalSurvey() {
+    this.showSurvey({
+      tag: 'FINAL · COMPARE THE TWO BREAKS',
+      title: 'Comparing the two breaks',
+      desc: 'You have now taken both a Silent break and an Audio (BreatheBeat) break. Please compare them.',
+      label: 'Final Comparison',
+      questions: FINAL_QUESTIONS,
+      showComments: true,
+      onSubmit: (answers, comments) => {
+        this.session.final = answers;
+        this.session.comments = comments;
+      }
     });
   }
 
   /* ==========================================================================
-     STAGE 5: Breathing Sanctuary (10 Rounds = 120s, Skip Available after 8)
+     5-Minute Eyes-Closed Rest (Silence or BreatheBeat)
      ========================================================================== */
-  wireBreathingStage() {
-    const skipBtn = document.getElementById('btn-skip-breathing');
-    if (skipBtn) {
-      skipBtn.addEventListener('click', () => {
-        this.finishBreathingStage();
-      });
-    }
-  }
+  startRest(b) {
+    const block = this.session.blocks[b];
+    const info = CONDITION_INFO[block.condition];
+    const isAudio = block.condition === 'breathebeat';
 
-  startBreathingStage() {
-    this.currentStageIndex = 4;
-    this.showStage('stage-breathing', 'Stage 4 · Guided Breathing Break');
+    this.showStage('stage-breathing', `${this.blockLabel(b)} · Break`);
+
+    const badgeEl = document.getElementById('breath-cycle-badge');
+    const titleEl = document.getElementById('breath-title');
+    const instrEl = document.getElementById('breath-instruction');
+    const roundLabel = document.getElementById('breath-round-label');
+    const timerLabel = document.getElementById('breath-total-time');
+
+    if (badgeEl) {
+      badgeEl.textContent = this.blockTag(b);
+      badgeEl.style.color = info.color;
+      badgeEl.style.background = `${info.color}1a`;
+    }
+    if (titleEl) titleEl.textContent = info.name;
+    if (instrEl) instrEl.textContent = info.restScreen;
+    if (roundLabel) roundLabel.textContent = '';
+    if (timerLabel) timerLabel.textContent = `${REST_ROUNDS * 10}s remaining`;
 
     const canvas = document.getElementById('wizard-breath-canvas');
     if (canvas && !this.wizardBreathVis) {
@@ -540,339 +703,92 @@ class BreatheBeatApp {
       this.wizardBreathVis.start();
     }
 
-    const badgeEl = document.getElementById('breath-cycle-badge');
-    const roundLabel = document.getElementById('breath-round-label');
-    const timerLabel = document.getElementById('breath-total-time');
-    const skipBtn = document.getElementById('btn-skip-breathing');
-
-    // Initial state: Round 1, 120s remaining, skip button strictly hidden
-    if (badgeEl) badgeEl.textContent = 'ROUND 1 OF 10';
-    if (roundLabel) roundLabel.textContent = 'Round 1 / 10 · Inhale';
-    if (timerLabel) timerLabel.textContent = '120s remaining';
-    if (skipBtn) skipBtn.classList.add('hidden');
-
-    // Clean up any stale interval
-    if (this.breathingTimerId) {
-      clearInterval(this.breathingTimerId);
-      this.breathingTimerId = null;
-    }
-
-    // Start 10 synchronized rounds driven by the unified audio engine
     synth.startBreathingCycle({
-      totalRounds: 10,
+      mode: block.condition,
+      totalRounds: REST_ROUNDS,
       onPhaseChange: (phaseInfo) => {
-        const roundNum = phaseInfo.cycle;
-        if (badgeEl) badgeEl.textContent = `ROUND ${roundNum} OF 10`;
-        if (roundLabel) roundLabel.textContent = `Round ${roundNum} / 10 · ${phaseInfo.label}`;
-
-        // Skip button: strictly hidden during rounds 1 to 8.
-        // Appears AFTER 8 rounds are completed (so when round 9 or 10 is happening).
-        if (roundNum >= 9) {
-          if (skipBtn) skipBtn.classList.remove('hidden');
-        } else {
-          if (skipBtn) skipBtn.classList.add('hidden');
+        if (roundLabel && isAudio) {
+          roundLabel.textContent = `Breath ${phaseInfo.cycle} / ${REST_ROUNDS} · ${phaseInfo.label}`;
         }
       },
       onTick: (tickInfo) => {
         if (this.wizardBreathVis) {
           this.wizardBreathVis.setDirectProgress(tickInfo.phase, tickInfo.phaseProgress);
         }
-
-        // Remaining timer is 100% mathematically synchronized with round progress
         if (timerLabel) {
           timerLabel.textContent = `${tickInfo.totalSecondsLeft}s remaining`;
         }
-
-        if (tickInfo.cycle >= 9) {
-          if (skipBtn) skipBtn.classList.remove('hidden');
-        } else {
-          if (skipBtn) skipBtn.classList.add('hidden');
-        }
       },
-      onComplete: () => {
-        // Automatically proceed after all 10 rounds are finished
-        this.finishBreathingStage();
-      }
+      onComplete: () => this.finishRest(b, true)
     });
   }
 
-  finishBreathingStage() {
-    if (this.breathingTimerId) {
-      clearInterval(this.breathingTimerId);
-      this.breathingTimerId = null;
-    }
+  finishRest(b, completed) {
+    const block = this.session.blocks[b];
+    block.restSeconds = synth.getElapsedSeconds();
+    block.restCompleted = completed;
+    block.audioMuted = block.condition === 'breathebeat' && synth.wasMuted;
 
     synth.stopBreathingCycle();
-    if (this.wizardBreathVis) {
-      this.wizardBreathVis.stop();
-    }
+    if (this.wizardBreathVis) this.wizardBreathVis.stop();
 
-    // Transition to Stage 5: Recovery Stroop
-    this.showTransition({
-      badge: 'STAGE 5 OF 7 · RECOVERY FOCUS',
-      title: 'Recovery Focus Check (Stroop Task)',
-      desc: 'Following your breathing break, we will re-evaluate your reaction speed and selective attention. Once again, select the INK COLOR of the word as quickly and accurately as possible.',
-      onProceed: () => this.startRecoveryStroop()
-    });
+    if (completed) {
+      synth.playChime();
+      this.advance();
+    }
   }
 
   /* ==========================================================================
-     STAGE 6: Recovery Stroop Task (12 Trials)
+     Completion
      ========================================================================== */
-  startRecoveryStroop() {
-    this.currentStageIndex = 5;
-    this.currentTaskType = 'recovery-stroop';
-    this.showStage('stage-task-mount', 'Stage 5 · Recovery Focus Check');
+  completeSession() {
+    this.session.completedAt = new Date().toISOString();
+    recordStudySession(this.session);
+    this.showStage('stage-complete', 'Complete');
+    this.renderCompletionSummary();
+  }
 
-    const mount = document.getElementById('stage-task-mount');
-    mount.innerHTML = `
-      <div class="wizard-card">
-        <div class="card-header">
-          <span class="section-tag" style="color: #10b981; background: rgba(16, 185, 129, 0.1);">POST-BREATHING</span>
-          <h2>Recovery Color Focus</h2>
-          <p class="card-sub">Final color task to evaluate cognitive recovery after the breathing exercise.</p>
-        </div>
-        <div id="stroop-mount-point"></div>
+  renderCompletionSummary() {
+    const summaryContainer = document.getElementById('complete-metrics-summary');
+    if (!summaryContainer) return;
+
+    summaryContainer.innerHTML = `
+      <div class="complete-metric-card">
+        <span class="complete-metric-lbl">Participant Roll</span>
+        <span class="complete-metric-val" style="font-size: 1.15rem;">${this.session.rollNumber || 'DEMO'}</span>
       </div>
     `;
-
-    const container = document.getElementById('stroop-mount-point');
-    this.currentActiveTask = new StroopTask({
-      container,
-      totalTrials: 12, // Increased questions
-      onComplete: (data) => {
-        this.session.recoveryRT = data.meanRT;
-        this.session.recoveryCongruentRT = data.meanCongruentRT;
-        this.session.recoveryIncongruentRT = data.meanIncongruentRT;
-        this.session.recoveryInterference = data.stroopEffect;
-        this.session.recoveryAcc = data.accuracy;
-
-        // Transition to Post-Breathing Math Task
-        this.showTransition({
-          badge: 'STAGE 6 OF 7 · RECOVERY STAMINA',
-          title: 'Recovery Arithmetic Challenge',
-          desc: 'A final round of rapid mental arithmetic to evaluate restored working memory stamina post-breathing. Solve as many questions correctly as you can.',
-          onProceed: () => this.startPostMath()
-        });
-      }
-    });
-    this.currentActiveTask.start();
+    summaryContainer.classList.remove('hidden');
   }
 
-  /* ==========================================================================
-     STAGE 7: Post-Breathing Arithmetic Task (45 Seconds Timed)
-     ========================================================================== */
-  startPostMath() {
-    this.currentStageIndex = 6;
-    this.currentTaskType = 'recovery-math';
-    this.showStage('stage-task-mount', 'Stage 6 · Recovery Stamina Check');
-
-    const mount = document.getElementById('stage-task-mount');
-    mount.innerHTML = `
-      <div class="wizard-card">
-        <div class="card-header">
-          <span class="section-tag" style="color: #10b981; background: rgba(16, 185, 129, 0.1);">POST-BREATHING</span>
-          <h2>Recovery Arithmetic Check</h2>
-          <p class="card-sub">Final math round to measure working memory stamina post-breathing (45 seconds total).</p>
-        </div>
-        <div id="math-mount-point"></div>
-      </div>
-    `;
-
-    const container = document.getElementById('math-mount-point');
-    this.currentActiveTask = new FatigueInducer({
-      container,
-      durationSeconds: 45, // Increased overall duration
-      questionTimeLimit: 7.0, // Comfortable 7s per question
-      onComplete: (data) => {
-        this.session.postMathAcc = data.accuracy;
-        this.session.postMathTotal = data.totalQuestions;
-        this.session.postMathRT = data.meanRt;
-
-        // Transition to Final Evaluation Survey
-        this.showTransition({
-          badge: 'STAGE 7 OF 7 · FINAL EVALUATION',
-          title: 'Final Evaluation & Audio Feedback',
-          desc: 'Almost finished! Answer four focused questions about your state and five-minute break experience.',
-          onProceed: () => this.startPostSurvey()
-        });
-      }
-    });
-    this.currentActiveTask.start();
-  }
-
-  /* ==========================================================================
-     STAGE 8: Post-Breathing Subjective Evaluation & Feedback (No Defaults)
-     ========================================================================== */
-  wirePostSurvey() {
-    const form = document.getElementById('form-post-survey');
-    if (!form) return;
-
-    const errorMsg = document.getElementById('post-survey-error');
-    this.wireChoiceButtonRows(form, errorMsg);
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const stateVal = document.getElementById('val-post-state').value;
-      const wanderingVal = document.getElementById('val-mind-wandering').value;
-      const paceVal = document.getElementById('val-breathing-pace').value;
-      const influenceVal = document.getElementById('val-focus-influence').value;
-
-      if (!stateVal || !wanderingVal || !paceVal || !influenceVal) {
-        if (errorMsg) {
-          errorMsg.textContent = 'Please answer all 4 questions before submitting.';
-          errorMsg.classList.remove('hidden');
-        }
-        return;
-      }
-
-      if (errorMsg) errorMsg.classList.add('hidden');
-
-      const postStateScores = { refreshed: 1, neutral: 2, tired: 3, bored: 4 };
-      const score = postStateScores[stateVal] || 0;
-      this.session.postState = stateVal;
-      this.session.mindWandering = wanderingVal;
-      this.session.breathingPace = paceVal;
-      this.session.focusInfluence = influenceVal;
-      this.session.postFatigue = score;
-      this.session.postStress = score;
-      this.session.postFocus = score;
-      this.session.postFatigueScore = score;
-
-      // Compute Measurable Deltas & Recovery Metrics
-      this.computeFinalMetrics();
-
-      // Transmit to Google Sheet webhook and save locally
-      recordStudySession(this.session);
-
-      // Transition to Stage 9 (Completion)
-      this.showStage('stage-complete', 'Complete');
-      this.renderCompletionSummary();
-    });
-  }
-
-  startPostSurvey() {
-    this.currentStageIndex = 7;
-    this.showStage('stage-post-survey', 'Stage 7 · Final Evaluation');
-  }
-
-  computeFinalMetrics() {
-    const base = this.session.baselineRT || 1000;
-    const rec = this.session.recoveryRT || 1000;
-
-    // Stroop Speedup (ms faster)
-    this.session.stroopSpeedup = Math.round(base - rec);
-
-    // Stroop Interference Reduction (ms reduction in mental confusion)
-    this.session.interferenceReduction = Math.round(
-      (this.session.baselineInterference || 0) - (this.session.recoveryInterference || 0)
-    );
-
-    // Math Accuracy Delta (%)
-    this.session.mathAccuracyDelta = Math.round(
-      (this.session.postMathAcc || 0) - (this.session.preMathAcc || 0)
-    );
-
-    // Subjective Stress/Fatigue Relief (Positive number = stress dropped)
-    this.session.subjectiveRelief = parseFloat(
-      (this.session.preFatigueScore - this.session.postFatigueScore).toFixed(2)
-    );
-
-    // =========================================================================
-    // Multi-Metric Composite Recovery Score (0 - 100%)
-    // Synthesizes speed restoration, cognitive stamina, mental clarity, and stress relief
-    // =========================================================================
-
-    // A. Reaction Time Recovery Component (30% weight)
-    // Speed restored or improved compared to baseline
-    let rtScore = 100;
-    if (rec > base && rec > 0) {
-      rtScore = Math.min(100, Math.max(0, Math.round((base / rec) * 100)));
-    }
-
-    // B. Cognitive Stamina & Accuracy Component (25% weight)
-    // Arithmetic precision after breathing & retention compared to pre-breathing fatigue
-    const preAcc = Math.min(100, Math.max(0, this.session.preMathAcc ?? 85));
-    const postAcc = Math.min(100, Math.max(0, this.session.postMathAcc ?? 85));
-    const accRetention = preAcc > 0 ? Math.min(100, (postAcc / preAcc) * 100) : postAcc;
-    const mathScore = Math.min(100, Math.max(0, Math.round(0.5 * postAcc + 0.5 * accRetention)));
-
-    // C. Subjective Stress & Fatigue Relief Component (25% weight)
-    // Mental decompression across fatigue, stress, and concentration difficulty
-    const preStress = Math.min(5, Math.max(1, this.session.preFatigueScore || 3.5));
-    const postStress = Math.min(5, Math.max(1, this.session.postFatigueScore || 2.0));
-    const postCalm = ((5 - postStress) / 4) * 100; // 1 = 100% calm, 5 = 0%
-    const stressRelief = preStress - postStress;
-    const reliefRatio = preStress > 1
-      ? Math.min(100, Math.max(0, (stressRelief / (preStress - 1)) * 100))
-      : (postStress <= 1 ? 100 : 50);
-    const stressScore = Math.min(100, Math.max(0, Math.round(0.5 * postCalm + 0.5 * reliefRatio)));
-
-    // D. Executive Attention / Interference Reduction Component (20% weight)
-    // Reduction in Stroop interference (congruent vs incongruent conflict)
-    const baseInt = Math.max(0, this.session.baselineInterference || 0);
-    const recInt = Math.max(0, this.session.recoveryInterference || 0);
-    let interferenceScore = 100;
-    if (recInt <= baseInt) {
-      interferenceScore = 100;
-    } else if (baseInt > 0) {
-      interferenceScore = Math.min(100, Math.max(0, Math.round((baseInt / recInt) * 100)));
-    } else {
-      interferenceScore = Math.min(100, Math.max(0, Math.round(100 - (recInt / 3))));
-    }
-
-    // Weighted composite recovery score (Total = 100%)
-    const compositeScore = Math.round(
-      (0.30 * rtScore) +
-      (0.25 * mathScore) +
-      (0.25 * stressScore) +
-      (0.20 * interferenceScore)
-    );
-
-    this.session.recoveryScore = Math.min(100, Math.max(0, compositeScore));
-  }
-
-  /* ==========================================================================
-     STAGE 9: Restart for Next Participant
-     ========================================================================== */
   wireRestartButton() {
     const restartBtn = document.getElementById('btn-restart-study');
     if (restartBtn) {
-      restartBtn.addEventListener('click', () => {
-        this.session = this.getFreshSessionState();
-
-        // Reset form fields
-        const intakeForm = document.getElementById('form-intake');
-        if (intakeForm) intakeForm.reset();
-
-        // Clear active states on buttons
-        document.querySelectorAll('.pill-choice').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.scale-chip').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.btn-scale, .btn-choice').forEach(s => s.classList.remove('active'));
-
-        // Reset hidden values
-        const hiddenIds = [
-          'intake-mw', 'intake-training',
-          'val-pre-state',
-          'val-post-state', 'val-mind-wandering', 'val-breathing-pace',
-          'val-focus-influence'
-        ];
-        hiddenIds.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.value = '';
-        });
-
-        // Hide errors
-        document.querySelectorAll('.form-error-msg').forEach(el => el.classList.add('hidden'));
-
-        this.showStage('stage-intake', '1. Participant Intake');
-      });
+      restartBtn.addEventListener('click', () => this.resetForNextParticipant());
     }
+  }
+
+  resetForNextParticipant() {
+    this.cleanupActiveProcesses();
+    this.session = this.getFreshSessionState();
+    this.steps = this.buildSteps();
+    this.currentStepIndex = 0;
+
+    const intakeForm = document.getElementById('form-intake');
+    if (intakeForm) intakeForm.reset();
+    const mwInput = document.getElementById('intake-mw');
+    if (mwInput) mwInput.value = '';
+
+    document.querySelectorAll('.pill-choice, .btn-choice').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.survey-item.unanswered').forEach(el => el.classList.remove('unanswered'));
+    document.querySelectorAll('.form-error-msg').forEach(el => el.classList.add('hidden'));
+
+    this.showStage('stage-overview', 'Welcome');
   }
 
   /* ==========================================================================
      PRESENTATION MODE & QUICK SECTION SKIPPING
+     Any skip marks the session Is_Demo = TRUE so it can be excluded from analysis.
      ========================================================================== */
   wirePresentationMode() {
     const toggleBtn = document.getElementById('btn-toggle-presentation');
@@ -880,71 +796,27 @@ class BreatheBeatApp {
     const barPrevBtn = document.getElementById('btn-presenter-prev-stage');
     const barSkipBtn = document.getElementById('btn-presenter-skip-stage');
     const intakeSkipBtn = document.getElementById('btn-skip-intake-pres');
-    const preSurveySkipBtn = document.getElementById('btn-skip-pre-survey-pres');
-    const postSurveySkipBtn = document.getElementById('btn-skip-post-survey-pres');
 
     const setPresentationMode = (active) => {
       this.isPresentationMode = active;
-      if (active) {
-        document.body.classList.add('presentation-mode-active');
-        if (toggleBtn) {
-          toggleBtn.classList.add('active');
-          const lbl = toggleBtn.querySelector('.pres-toggle-label');
-          if (lbl) lbl.textContent = 'Presentation: ON';
-        }
-        if (presenterBar) presenterBar.classList.remove('hidden');
-        document.querySelectorAll('.pres-only-btn').forEach(btn => btn.classList.remove('hidden'));
-      } else {
-        document.body.classList.remove('presentation-mode-active');
-        if (toggleBtn) {
-          toggleBtn.classList.remove('active');
-          const lbl = toggleBtn.querySelector('.pres-toggle-label');
-          if (lbl) lbl.textContent = 'Presentation Mode';
-        }
-        if (presenterBar) presenterBar.classList.add('hidden');
-        document.querySelectorAll('.pres-only-btn').forEach(btn => btn.classList.add('hidden'));
+      document.body.classList.toggle('presentation-mode-active', active);
+      if (toggleBtn) {
+        toggleBtn.classList.toggle('active', active);
+        const lbl = toggleBtn.querySelector('.pres-toggle-label');
+        if (lbl) lbl.textContent = active ? 'Presentation: ON' : 'Presentation Mode';
       }
+      if (presenterBar) presenterBar.classList.toggle('hidden', !active);
+      document.querySelectorAll('.pres-only-btn').forEach(btn => btn.classList.toggle('hidden', !active));
       this.updatePresenterBar();
     };
 
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        setPresentationMode(!this.isPresentationMode);
-      });
-    }
-
-    if (barPrevBtn) {
-      barPrevBtn.addEventListener('click', () => {
-        this.previousStage();
-      });
-    }
-
-    if (barSkipBtn) {
-      barSkipBtn.addEventListener('click', () => {
-        this.skipCurrentStage();
-      });
-    }
-
-    if (intakeSkipBtn) {
-      intakeSkipBtn.addEventListener('click', () => {
-        this.skipCurrentStage();
-      });
-    }
-
-    if (preSurveySkipBtn) {
-      preSurveySkipBtn.addEventListener('click', () => {
-        this.skipCurrentStage();
-      });
-    }
-
-    if (postSurveySkipBtn) {
-      postSurveySkipBtn.addEventListener('click', () => {
-        this.skipCurrentStage();
-      });
-    }
+    if (toggleBtn) toggleBtn.addEventListener('click', () => setPresentationMode(!this.isPresentationMode));
+    if (barPrevBtn) barPrevBtn.addEventListener('click', () => this.previousStage());
+    if (barSkipBtn) barSkipBtn.addEventListener('click', () => this.skipCurrentStage());
+    if (intakeSkipBtn) intakeSkipBtn.addEventListener('click', () => this.skipCurrentStage());
 
     // Keyboard Shortcuts:
-    // 'P' or 'Alt+P' toggles Presentation Mode (when not typing in an input)
+    // 'P' toggles Presentation Mode (when not typing in an input)
     // 'Shift+ArrowRight' or 'Shift+N' skips to the next stage
     // 'Shift+ArrowLeft' or 'Shift+B' goes back to previous stage
     window.addEventListener('keydown', (e) => {
@@ -975,19 +847,16 @@ class BreatheBeatApp {
     }
 
     const prevBtn = document.getElementById('btn-presenter-prev-stage');
-    if (prevBtn) {
-      prevBtn.disabled = this.currentStageIndex <= 0;
-    }
+    if (prevBtn) prevBtn.disabled = this.currentStepIndex <= 0;
 
     const nextBtn = document.getElementById('btn-presenter-skip-stage');
-    if (nextBtn) {
-      nextBtn.disabled = this.currentStageIndex >= 8;
-    }
+    if (nextBtn) nextBtn.disabled = this.currentStepIndex >= this.steps.length - 1;
   }
 
   cleanupActiveProcesses() {
     this.clearTransitionTimer();
     this.onTransitionProceed = null;
+    this.activeSurvey = null;
 
     if (this.currentActiveTask && typeof this.currentActiveTask.destroy === 'function') {
       try {
@@ -1006,180 +875,84 @@ class BreatheBeatApp {
     }
   }
 
-  ensureIntakeData() {
-    if (!this.session.rollNumber) {
-      const nameInput = document.getElementById('intake-name');
-      const rollInput = document.getElementById('intake-roll');
-      const ageInput = document.getElementById('intake-age');
-      const mwInput = document.getElementById('intake-mw');
-      const trainingInput = document.getElementById('intake-training');
+  /**
+   * Fills any data a skipped step would have produced, so later steps and the export stay valid
+   */
+  fillDemoData(step) {
+    const midAnswers = (questions) => Object.fromEntries(
+      questions.map(q => [q.id, q.options[Math.floor(q.options.length / 2)].value])
+    );
+    const demoStroop = (rt) => ({ totalTrials: STROOP_TRIALS, correctCount: 11, accuracy: 92, meanRT: rt, meanCongruentRT: rt - 60, meanIncongruentRT: rt + 60, stroopEffect: 120 });
+    const block = step.b !== undefined ? this.session.blocks[step.b] : null;
 
-      this.session.name = nameInput?.value.trim() || 'Demo Presenter';
-      this.session.rollNumber = rollInput?.value.trim() || '2024111009';
-      this.session.age = parseInt(ageInput?.value, 10) || 21;
-      this.session.isMusicWorkshop = mwInput?.value || 'Yes';
-      this.session.musicalTraining = parseInt(trainingInput?.value, 10) || 3;
+    switch (step.type) {
+      case 'intake':
+        if (!this.session.rollNumber) {
+          this.session.name = 'Demo Presenter';
+          this.session.rollNumber = 'DEMO';
+          this.session.age = 21;
+          this.session.isMusicWorkshop = 'Yes';
+          this.session.intake = midAnswers(INTAKE_QUESTIONS);
+        }
+        break;
+      case 'baseline-stroop':
+        if (!this.session.baselineStroop) this.session.baselineStroop = demoStroop(840);
+        break;
+      case 'math':
+        if (!block.stressorMath) block.stressorMath = { accuracy: 80, totalQuestions: 9, meanRt: 3100 };
+        break;
+      case 'pre-stroop':
+        if (!block.preStroop) block.preStroop = demoStroop(900);
+        break;
+      case 'pre-survey':
+        if (!block.preState) block.preState = midAnswers(STATE_QUESTIONS);
+        break;
+      case 'post-stroop':
+        if (!block.postStroop) block.postStroop = demoStroop(820);
+        break;
+      case 'post-survey':
+        if (!block.postState) block.postState = midAnswers(STATE_QUESTIONS);
+        if (!block.experience) block.experience = midAnswers(getRestExperienceQuestions(block.condition));
+        break;
+      case 'final-survey':
+        if (!Object.keys(this.session.final).length) this.session.final = midAnswers(FINAL_QUESTIONS);
+        break;
     }
   }
 
-  ensureBaselineData() {
-    if (!this.session.baselineRT) {
-      this.session.baselineRT = 840;
-      this.session.baselineCongruentRT = 780;
-      this.session.baselineIncongruentRT = 900;
-      this.session.baselineInterference = 120;
-      this.session.baselineAcc = 95;
+  goToStep(targetIndex) {
+    if (targetIndex < 0 || targetIndex >= this.steps.length) return;
+
+    this.session.isDemo = true;
+    if (this.steps[this.currentStepIndex]?.type === 'rest' && this.currentStageId === 'stage-breathing') {
+      this.finishRest(this.steps[this.currentStepIndex].b, false);
     }
-  }
-
-  ensurePreMathData() {
-    if (!this.session.preMathAcc) {
-      this.session.preMathAcc = 86;
-      this.session.preMathTotal = 7;
-      this.session.preMathRT = 3100;
-    }
-  }
-
-  ensurePreSurveyData() {
-    if (!this.session.preFatigueScore) {
-      this.session.preState = 'exhausted';
-      this.session.preFatigue = 4;
-      this.session.preStress = 4;
-      this.session.preFocus = 4;
-      this.session.preFatigueScore = 4;
-    }
-  }
-
-  ensureRecoveryStroopData() {
-    if (!this.session.recoveryRT) {
-      this.session.recoveryRT = 730;
-      this.session.recoveryCongruentRT = 690;
-      this.session.recoveryIncongruentRT = 770;
-      this.session.recoveryInterference = 80;
-      this.session.recoveryAcc = 100;
-    }
-  }
-
-  ensurePostMathData() {
-    if (!this.session.postMathAcc) {
-      this.session.postMathAcc = 94;
-      this.session.postMathTotal = 7;
-      this.session.postMathRT = 2700;
-    }
-  }
-
-  ensureAllDemoMetrics() {
-    this.ensureIntakeData();
-    this.ensureBaselineData();
-    this.ensurePreMathData();
-    this.ensurePreSurveyData();
-    this.ensureRecoveryStroopData();
-    this.ensurePostMathData();
-    if (!this.session.postFatigueScore) {
-      this.session.postState = 'refreshed';
-      this.session.mindWandering = 'audio-breath';
-      this.session.breathingPace = 'natural';
-      this.session.focusInfluence = 'steady-track';
-      this.session.postFatigue = 1;
-      this.session.postStress = 1;
-      this.session.postFocus = 2;
-      this.session.postFatigueScore = 1.67;
-      this.session.breathingEase = 5;
-      this.session.audioPleasantness = 5;
-      this.session.qualitativeFeedback = 'Presentation Demo: Diaphragmatic 4-2-6 breathing restored clarity.';
-    }
-  }
-
-  goToStageByIndex(targetIndex) {
-    if (targetIndex < 0 || targetIndex > 8) return;
-
     this.cleanupActiveProcesses();
 
-    switch (targetIndex) {
-      case 0:
-        this.currentStageIndex = 0;
-        this.showStage('stage-intake', '1. Participant Intake');
-        break;
-      case 1:
-        this.ensureIntakeData();
-        this.startBaselineStroop();
-        break;
-      case 2:
-        this.ensureIntakeData();
-        this.ensureBaselineData();
-        this.startPreMath();
-        break;
-      case 3:
-        this.ensureIntakeData();
-        this.ensurePreMathData();
-        this.startPreSurvey();
-        break;
-      case 4:
-        this.ensureIntakeData();
-        this.ensurePreSurveyData();
-        this.startBreathingStage();
-        break;
-      case 5:
-        this.ensureIntakeData();
-        this.startRecoveryStroop();
-        break;
-      case 6:
-        this.ensureIntakeData();
-        this.ensureRecoveryStroopData();
-        this.startPostMath();
-        break;
-      case 7:
-        this.ensureIntakeData();
-        this.ensurePostMathData();
-        this.startPostSurvey();
-        break;
-      case 8:
-        this.currentStageIndex = 8;
-        this.ensureAllDemoMetrics();
-        this.computeFinalMetrics();
-        recordStudySession(this.session);
-        this.showStage('stage-complete', 'Complete');
-        this.renderCompletionSummary();
-        break;
+    for (let i = 0; i < targetIndex; i++) {
+      this.fillDemoData(this.steps[i]);
     }
 
+    this.runStep(targetIndex);
     this.updatePresenterBar();
   }
 
   previousStage() {
     if (this.currentStageId === 'stage-transition') {
-      this.clearTransitionTimer();
-      this.onTransitionProceed = null;
-      this.goToStageByIndex(Math.max(0, this.currentStageIndex));
+      // The transition belongs to the step it introduces; go back to the step before it
+      this.goToStep(Math.max(0, this.currentStepIndex - 1));
       return;
     }
-    this.goToStageByIndex(this.currentStageIndex - 1);
+    this.goToStep(this.currentStepIndex - 1);
   }
 
   skipCurrentStage() {
     if (this.currentStageId === 'stage-transition') {
       this.clearTransitionTimer();
-      if (this.onTransitionProceed) {
-        const fn = this.onTransitionProceed;
-        this.onTransitionProceed = null;
-        fn();
-      }
+      this.fireTransitionProceed();
       return;
     }
-    this.goToStageByIndex(this.currentStageIndex + 1);
-  }
-
-  renderCompletionSummary() {
-    const summaryContainer = document.getElementById('complete-metrics-summary');
-    if (!summaryContainer) return;
-
-    summaryContainer.innerHTML = `
-      <div class="complete-metric-card">
-        <span class="complete-metric-lbl">Participant Roll</span>
-        <span class="complete-metric-val" style="font-size: 1.15rem;">${this.session.rollNumber || 'DEMO'}</span>
-      </div>
-    `;
-    summaryContainer.classList.remove('hidden');
+    this.goToStep(this.currentStepIndex + 1);
   }
 }
 
