@@ -25,8 +25,8 @@ export const COLUMNS = [
   'PreRest_Stroop_RT', 'PreRest_Stroop_Acc', 'PreRest_Stroop_Interference',
   'PostRest_Stroop_RT', 'PostRest_Stroop_Acc', 'PostRest_Stroop_Interference',
   'Stroop_RT_Gain_ms', 'Stroop_Acc_Gain', 'Stroop_Interference_Gain_ms',
-  'Pre_Stress', 'Pre_Fatigue', 'Post_Stress', 'Post_Fatigue',
-  'Stress_Drop', 'Fatigue_Drop',
+  'Pre_Difficulty', 'Pre_Stress', 'Post_Difficulty', 'Post_Stress',
+  'Difficulty_Drop', 'Stress_Drop',
   'Attention_On_Breath', 'Sync_Ease', 'Relaxation',
   'Rest_Seconds', 'Rest_Completed', 'Audio_Muted',
   'Final_More_Refreshed', 'Calm_Preference', 'Comments'
@@ -84,11 +84,11 @@ export function buildConditionRow(session, block) {
     Stroop_Interference_Gain_ms: diff(block.preStroop?.stroopEffect, block.postStroop?.stroopEffect),
 
     Pre_Stress: num(pre.stress),
-    Pre_Fatigue: num(pre.fatigue),
+    Pre_Difficulty: num(pre.taskDifficulty),
     Post_Stress: num(post.stress),
-    Post_Fatigue: num(post.fatigue),
+    Post_Difficulty: num(post.taskDifficulty),
     Stress_Drop: diff(pre.stress, post.stress),
-    Fatigue_Drop: diff(pre.fatigue, post.fatigue),
+    Difficulty_Drop: diff(pre.taskDifficulty, post.taskDifficulty),
 
     Attention_On_Breath: num(exp.attentionOnBreath),
     Sync_Ease: num(exp.syncEase),

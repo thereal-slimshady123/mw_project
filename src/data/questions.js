@@ -39,9 +39,24 @@ export const INTAKE_QUESTIONS = [
 ];
 
 /* ==========================================================================
-   State check — asked after the stress task (before the break) AND after the break
+   State check — asked after the arithmetic + Stroop before the break AND again after the
+   identical arithmetic + Stroop after the break, so both items give a before/after change score.
+   - taskDifficulty: how hard the SAME arithmetic task felt (cognitive appraisal; also checks
+     that the stressor actually stressed students).
+   - stress: how the student feels right now (emotional state).
    ========================================================================== */
 export const STATE_QUESTIONS = [
+  {
+    id: 'taskDifficulty',
+    text: 'How did the arithmetic task you just did feel?',
+    // higher = harder
+    options: [
+      { value: 1, label: 'Easy: I answered comfortably within the time' },
+      { value: 2, label: 'Manageable: I had to hurry a little' },
+      { value: 3, label: 'Hard: I often felt rushed by the timer' },
+      { value: 4, label: 'Very hard: I could not keep up with the timer' }
+    ]
+  },
   {
     id: 'stress',
     text: 'Which best describes how you feel right now?',
@@ -51,17 +66,6 @@ export const STATE_QUESTIONS = [
       { value: 2, label: 'Calm, with a little tension' },
       { value: 3, label: 'Tense: I can feel some pressure' },
       { value: 4, label: 'Stressed: I feel rushed or on edge' }
-    ]
-  },
-  {
-    id: 'fatigue',
-    text: 'Which best describes how your brain feels right now?',
-    // higher = more mentally tired
-    options: [
-      { value: 1, label: 'Fresh: I could start a hard task right now' },
-      { value: 2, label: 'Alert: a bit used, but still focused' },
-      { value: 3, label: 'Tired: focusing takes effort' },
-      { value: 4, label: 'Drained: my mind feels heavy or foggy' }
     ]
   }
 ];

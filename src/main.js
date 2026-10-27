@@ -619,7 +619,7 @@ class BreatheBeatApp {
       tag: `${this.blockTag(b)} · CHECK-IN`,
       tagColor: CONDITION_INFO[block.condition].color,
       title: 'How are you feeling right now?',
-      desc: 'Answer based on how you feel at this moment, after the arithmetic task.',
+      desc: 'Answer about the arithmetic task you just did and how you feel at this moment.',
       label: `${this.blockLabel(b)} · Check-in`,
       questions: STATE_QUESTIONS,
       onSubmit: (answers) => { block.preState = answers; }
@@ -636,7 +636,7 @@ class BreatheBeatApp {
       tag: `${this.blockTag(b)} · AFTER THE BREAK`,
       tagColor: info.color,
       title: `How are you feeling after the ${info.lowerName}?`,
-      desc: `Questions 1–2 are about how you feel right now. The rest are about the ${info.lowerName} you just took.`,
+      desc: `Questions 1–2 are the same as before the break: answer about the arithmetic task you just did and how you feel now. The rest are about the ${info.lowerName} you just took.`,
       label: `${this.blockLabel(b)} · Check-in`,
       questions,
       onSubmit: (answers) => {

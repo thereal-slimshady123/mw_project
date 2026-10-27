@@ -54,9 +54,9 @@ Every participant takes **both** 2-minute eyes-closed breaks. The order is rando
 #### Data (Google Sheet tab `Responses_v2`, see `docs/google_apps_script.gs`)
 Long format: **two rows per participant** (one per condition), joined by `Session_ID`.
 - Math metrics are stored before and after each break: accuracy, total questions, correct answers, and mean response time (`Stressor_Math_*` and `PostRest_Math_*`).
-- Every answer is a concrete description on one ordered dimension, stored as a number (codes are documented in `src/data/questions.js`). State items: `Stress` 1 = Relaxed … 4 = Stressed; `Fatigue` 1 = Fresh … 4 = Drained. Break items (`Attention_On_Breath`, `Sync_Ease`, `Relaxation`): 1–4, higher = better. `Music_Listening` 1–3 (daily listening: < 30 min / 30 min–2 h / > 2 h); `Breathing_Practice` 0–2.
+- Every answer is a concrete description on one ordered dimension, stored as a number (codes are documented in `src/data/questions.js`). State items (asked before and after each break): `Difficulty` = how hard the same arithmetic task felt, 1 = Easy … 4 = Could not keep up; `Stress` 1 = Relaxed … 4 = Stressed. Break items (`Attention_On_Breath`, `Sync_Ease`, `Relaxation`): 1–4, higher = better. `Music_Listening` 1–3 (daily listening: < 30 min / 30 min–2 h / > 2 h); `Breathing_Practice` 0–2.
 - No neutral/"no difference" options. The final comparison is a forced choice, so it can be tested directly (binomial / sign test), and `Calm_Preference` (sound vs silence) can be cross-tabulated against it.
-- Change scores are oriented so that **positive = better after the break**: `Stroop_RT_Gain_ms`, `Stroop_Acc_Gain`, `Stroop_Interference_Gain_ms`, `Stress_Drop`, `Fatigue_Drop`.
+- Change scores are oriented so that **positive = better after the break**: `Stroop_RT_Gain_ms`, `Stroop_Acc_Gain`, `Stroop_Interference_Gain_ms`, `Difficulty_Drop`, `Stress_Drop`.
 - `Sync_Ease` is only asked after the Audio break (the Silent break is unpaced).
 - Quality flags: `Is_Demo` (presentation-mode skips were used; exclude these rows), `Rest_Completed`, `Audio_Muted`.
 - Primary analysis: paired comparison of each gain score, Silence vs BreatheBeat (paired t-test / Wilcoxon). Use `Block_Position` to check order effects, and the intake answers as moderators.
