@@ -1,6 +1,6 @@
 /**
  * BREATHEBEAT — Main Study Orchestrator
- * Within-subject comparison of two 3-minute eyes-closed rests after a cognitive stressor:
+ * Within-subject comparison of two 2-minute eyes-closed rests after a cognitive stressor:
  *   - Silence: rest in silence, breathing slowly at one's own pace
  *   - BreatheBeat: breathe in sync with the 4-6 (4s inhale / 6s exhale) BreatheBeat audio
  *
@@ -33,7 +33,7 @@ import {
 const PROTOCOL_VERSION = '2.3-symmetrical-math-no-warmup';
 const STROOP_TRIALS = 12;
 const MATH_SECONDS = 45;
-const REST_ROUNDS = 18; // 18 x 10s = 3 minutes (full BreatheBeat track)
+const REST_ROUNDS = 12; // 12 x 10s = 2 minutes (full BreatheBeat track)
 
 const CONDITION_INFO = {
   silence: {
@@ -41,7 +41,7 @@ const CONDITION_INFO = {
     lowerName: 'silent break',
     tag: 'SILENT BREAK',
     color: '#a78bfa',
-    restInstruction: 'Close your eyes and rest in silence. Breathe slowly and comfortably at your own pace. There is nothing to count or follow. Keep your eyes closed for the full 3 minutes. A soft chime will tell you when the break is over.',
+    restInstruction: 'Close your eyes and rest in silence. Breathe slowly and comfortably at your own pace. There is nothing to count or follow. Keep your eyes closed for the full 2 minutes. A soft chime will tell you when the break is over.',
     restScreen: 'Keep your eyes closed and breathe slowly at your own pace. A soft chime will mark the end.'
   },
   breathebeat: {
@@ -49,7 +49,7 @@ const CONDITION_INFO = {
     lowerName: 'audio break',
     tag: 'AUDIO BREAK',
     color: '#34d399',
-    restInstruction: 'Put on your headphones if you have them. When you press Start, the audio begins. Please close your eyes and breathe in sync with the audio: INHALE through your nose during the first, shorter sound (4 seconds), then EXHALE slowly during the second, longer sound (6 seconds). Keep your eyes closed and stay in sync for the full 3 minutes. A soft chime will tell you when the break is over.',
+    restInstruction: 'Put on your headphones if you have them. When you press Start, the audio begins. Please close your eyes and breathe in sync with the audio: INHALE through your nose during the first, shorter sound (4 seconds), then EXHALE slowly during the second, longer sound (6 seconds). Keep your eyes closed and stay in sync for the full 2 minutes. A soft chime will tell you when the break is over.',
     restScreen: 'Please close your eyes and breathe in sync with the audio: inhale on the short sound, exhale on the long sound.'
   }
 };
@@ -230,7 +230,7 @@ class BreatheBeatApp {
         return {
           badge: `${this.blockTag(step.b)} · STRESS TASK`,
           title: `Part ${step.b + 1} of 2: ${info.name}`,
-          desc: `This part ends with a 3-minute ${info.lowerName}. First, solve rapid mental arithmetic questions under time pressure for ${MATH_SECONDS} seconds. Answer as many as you can correctly.`,
+          desc: `This part ends with a 2-minute ${info.lowerName}. First, solve rapid mental arithmetic questions under time pressure for ${MATH_SECONDS} seconds. Answer as many as you can correctly.`,
           autoAdvance: false,
           buttonText: `Start Part ${step.b + 1}`
         };
@@ -250,11 +250,11 @@ class BreatheBeatApp {
       case 'rest': {
         const info = CONDITION_INFO[this.session.blocks[step.b].condition];
         return {
-          badge: `${this.blockTag(step.b)} · 3-MINUTE BREAK`,
+          badge: `${this.blockTag(step.b)} · 2-MINUTE BREAK`,
           title: `${info.name}: Instructions`,
           desc: `${info.restInstruction} ${NO_DEVICES_NOTE}`,
           autoAdvance: false,
-          buttonText: 'Start the 3-Minute Break'
+          buttonText: 'Start the 2-Minute Break'
         };
       }
       case 'post-stroop':
@@ -664,7 +664,7 @@ class BreatheBeatApp {
   }
 
   /* ==========================================================================
-     5-Minute Eyes-Closed Rest (Silence or BreatheBeat)
+     2-Minute Eyes-Closed Rest (Silence or BreatheBeat)
      ========================================================================== */
   startRest(b) {
     const block = this.session.blocks[b];

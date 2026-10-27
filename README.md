@@ -37,24 +37,24 @@ BREATHEBEAT is a self-contained web platform designed to evaluate whether sonify
 ### Core Modules
 
 #### 1. Study Protocol (Within-Subject: Silence vs BreatheBeat)
-Every participant takes **both** 3-minute eyes-closed breaks. The order is randomised per participant (`Condition_Order`) to balance practice and fatigue effects. Total time is about 15 minutes.
+Every participant takes **both** 2-minute eyes-closed breaks. The order is randomised per participant (`Condition_Order`) to balance practice and fatigue effects. Total time is about 15 minutes.
 
 | Step | What happens |
 |---|---|
 | Overview | Explains the study, both breaks, and what the participant will do |
-| Intake | Roll no., age, Music Workshop enrolment, musical training, familiarity with breathing/meditation |
-| **Part 1** and **Part 2** (one per condition) | Stress task (45 s arithmetic) → Stroop → 2 state ratings → **3-min break** → arithmetic (45 s) → Stroop → 2 state ratings + 2–3 break ratings |
+| Intake | Roll no., age, Music Workshop enrolment, daily music listening, familiarity with breathing/meditation |
+| **Part 1** and **Part 2** (one per condition) | Stress task (45 s arithmetic) → Stroop → 2 state ratings → **2-min break** → arithmetic (45 s) → Stroop → 2 state ratings + 2–3 break ratings |
 | Final | Which break felt more refreshing (forced choice), music vs silence preference when stressed (forced choice), optional comment |
 
 **Conditions**
 - **Silent Break:** eyes closed, silence, breathe slowly at your own pace.
-- **Audio Break (BreatheBeat):** eyes closed, breathe in sync with `src/audio/breathebeat_4-6.mp3` (4 s inhale / 6 s exhale, 18 breaths, loudness-boosted). The breathing guide is clocked from the track's playback position, so it cannot drift.
-- Both breaks last exactly 180 s, cannot be skipped by participants, and end with the same soft chime.
+- **Audio Break (BreatheBeat):** eyes closed, breathe in sync with `src/audio/breathebeat_4-6.mp3` (4 s inhale / 6 s exhale, 12 breaths, loudness-boosted). The breathing guide is clocked from the track's playback position, so it cannot drift.
+- Both breaks last exactly 120 s, cannot be skipped by participants, and end with the same soft chime.
 
 #### Data (Google Sheet tab `Responses_v2`, see `docs/google_apps_script.gs`)
 Long format: **two rows per participant** (one per condition), joined by `Session_ID`.
 - Math metrics are stored before and after each break: accuracy, total questions, correct answers, and mean response time (`Stressor_Math_*` and `PostRest_Math_*`).
-- Every answer is a concrete description on one ordered dimension, stored as a number (codes are documented in `src/data/questions.js`). State items: `Stress` 1 = Relaxed … 4 = Stressed; `Fatigue` 1 = Fresh … 4 = Drained. Break items (`Attention_On_Breath`, `Sync_Ease`, `Relaxation`): 1–4, higher = better. `Music_Training` 0–3; `Breathing_Practice` 0–2.
+- Every answer is a concrete description on one ordered dimension, stored as a number (codes are documented in `src/data/questions.js`). State items: `Stress` 1 = Relaxed … 4 = Stressed; `Fatigue` 1 = Fresh … 4 = Drained. Break items (`Attention_On_Breath`, `Sync_Ease`, `Relaxation`): 1–4, higher = better. `Music_Listening` 1–3 (daily listening: < 30 min / 30 min–2 h / > 2 h); `Breathing_Practice` 0–2.
 - No neutral/"no difference" options. The final comparison is a forced choice, so it can be tested directly (binomial / sign test), and `Calm_Preference` (sound vs silence) can be cross-tabulated against it.
 - Change scores are oriented so that **positive = better after the break**: `Stroop_RT_Gain_ms`, `Stroop_Acc_Gain`, `Stroop_Interference_Gain_ms`, `Stress_Drop`, `Fatigue_Drop`.
 - `Sync_Ease` is only asked after the Audio break (the Silent break is unpaced).

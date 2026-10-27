@@ -16,15 +16,14 @@
    ========================================================================== */
 export const INTAKE_QUESTIONS = [
   {
-    id: 'musicTraining',
-    text: 'Which best describes your musical training (vocal or instrumental)?',
-    hint: 'If more than one applies, pick the one lowest in this list.',
-    // higher = more training
+    id: 'musicListening',
+    text: 'On a typical day, how much time do you spend listening to music?',
+    hint: 'Include all listening: while travelling, studying, working out, or relaxing.',
+    // higher = more daily listening
     options: [
-      { value: 0, label: 'No training' },
-      { value: 1, label: 'Self-taught only (no lessons or classes)' },
-      { value: 2, label: 'Lessons or classes for less than 3 years' },
-      { value: 3, label: 'Lessons or classes for 3 years or more' }
+      { value: 1, label: 'Less than 30 minutes' },
+      { value: 2, label: '30 minutes to 2 hours' },
+      { value: 3, label: 'More than 2 hours' }
     ]
   },
   {

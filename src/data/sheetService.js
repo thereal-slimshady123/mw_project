@@ -18,7 +18,7 @@ const STORAGE_KEY = 'breathebeat_sessions_v2';
 export const COLUMNS = [
   'Session_ID', 'Timestamp', 'Is_Demo', 'Protocol_Version',
   'Roll_No', 'Age', 'MW_Course',
-  'Music_Training', 'Breathing_Practice',
+  'Music_Listening', 'Breathing_Practice',
   'Condition_Order', 'Condition', 'Block_Position',
   'Stressor_Math_Acc', 'Stressor_Math_Total', 'Stressor_Math_Correct', 'Stressor_Math_RT',
   'PostRest_Math_Acc', 'PostRest_Math_Total', 'PostRest_Math_Correct', 'PostRest_Math_RT',
@@ -55,7 +55,7 @@ export function buildConditionRow(session, block) {
     Roll_No: String(session.rollNumber || ''),
     Age: num(session.age),
     MW_Course: session.isMusicWorkshop || '',
-    Music_Training: num(intake.musicTraining),
+    Music_Listening: num(intake.musicListening),
     Breathing_Practice: num(intake.breathingPractice),
 
     Condition_Order: session.conditionOrder.join('>'),

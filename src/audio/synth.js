@@ -1,11 +1,11 @@
 /**
  * BREATHEBEAT Audio Engine
  * Drives the guided 4-6 breathing rest (4s Inhale, 6s Exhale) in one of two conditions:
- *   - 'breathebeat': plays breathebeat_4-6.mp3 (3 min, 18 cycles). The breathing phase is
+ *   - 'breathebeat': plays breathebeat_4-6.mp3 (2 min, 12 cycles). The breathing phase is
  *     derived from the track's own playback position, so the visual guide can never drift
  *     away from the audio.
  *   - 'silence': no audio and no pacing. Participants rest with eyes closed and breathe slowly at
- *     their own pace for the same 3 minutes (wall clock, phase reported as 'rest').
+ *     their own pace for the same 2 minutes (wall clock, phase reported as 'rest').
  * Both conditions end with the same soft chime so participants know when to open their eyes.
  */
 
@@ -40,7 +40,7 @@ export class BreatheBeatAudio {
     this.cycleLength = 10.0;
     this.audioCyclePeriod = 10.011;
     this.audioCycleOffset = 0.05;
-    this.totalRounds = 18; // 18 x 10s = 3 minutes, the full length of the track
+    this.totalRounds = 12; // 12 x 10s = 2 minutes, the full length of the track
   }
 
   /**
@@ -89,7 +89,7 @@ export class BreatheBeatAudio {
     this.stopBreathingCycle();
 
     this.mode = opts.mode === 'breathebeat' ? 'breathebeat' : 'silence';
-    this.totalRounds = opts.totalRounds || 18;
+    this.totalRounds = opts.totalRounds || 12;
     this.onPhaseChangeCallback = opts.onPhaseChange || null;
     this.onTickCallback = opts.onTick || null;
     this.onCompleteCallback = opts.onComplete || null;
@@ -165,7 +165,7 @@ export class BreatheBeatAudio {
 
       let phase, phaseTime, phaseDuration, label;
       if (this.mode === 'silence') {
-        // Unpaced rest: one continuous phase, the cycle count only drives the 3-minute timer
+        // Unpaced rest: one continuous phase, the cycle count only drives the 2-minute timer
         phase = 'rest';
         phaseTime = timeInCycle;
         phaseDuration = this.cycleLength;
