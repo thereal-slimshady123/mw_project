@@ -12,6 +12,22 @@ yarn-error.log*
 
 # Editor & OS files
 .vscode/
-.idea/
+.idea/  
 .DS_Store
 Thumbs.db
+analysis/
+
+# Teammates' individual sprint reports (kept locally, not tracked)
+/IndividualReport-2023101072.pdf
+/k.pdf
+
+# Sprint 3 combined report (kept locally, not tracked)
+/combined.md
+/combined.pdf
+
+# Own Sprint 3 individual report (kept locally, not tracked)
+/report.pdf
+
+# Contribution evidence and presentation deck (kept locally, not tracked)
+/report/contribution_evidence.md
+/presentation-deck/

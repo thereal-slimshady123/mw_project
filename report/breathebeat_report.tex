@@ -1,0 +1,330 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../analysis/output/}}
+\captionsetup{font=small,labelfont=bf}
+\setlist{itemsep=2pt,topsep=4pt}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+\title{\textbf{BREATHEBEAT}\\[4pt]\large Does a breath-pacing sound help people recover after a mentally tiring task?}
+\author{Sri Harshit K (2024102022) \and Parth Dhodapkar (2024111009) \and Atharva Kulkarni (2023101072)\\[4pt]
+\small Music Workshop, Monsoon 2026}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent We asked whether a two-minute break with a sound that paces the breath helps people recover from a mentally tiring task better than two minutes of silent rest. Forty-one students each did both breaks in one session, in random order, with a timed arithmetic task and a Stroop test before and after each break. People rated the paced-sound break as more relaxing (3.49 after the paced sound against 2.93 after silence, on a 4-point scale) and said their attention stayed on their breathing more (3.27 against 2.76). We are fairly confident of these two results, even after allowing for the many comparisons we made. Stress and task difficulty leaned the same way, but we cannot be confident about those. Stroop and arithmetic scores did not differ much between the two breaks, and our Stroop test was too easy to show a difference either way.
+\end{abstract}
+
+%-------------------------------------------------------------
+\section{Motivation}
+
+Mental fatigue is part of student life. After a long stretch of studying, the usual remedy is a short break, but sitting quietly often does not bring focus back, because the mind keeps running on the same thoughts. Slow breathing is a well-known way to calm down, and many breathing apps pace it with a voice that counts (``in, two, three, four''). That voice adds words to a break that is meant to be restful. Music offers another way: a sound can swell and fade with each breath, much as the steady tanpura we listen to with our eyes closed in class gives the mind something to rest on. We wanted to know whether a sound on its own, with no words, could pace the breath and make a short break more restful than silence.
+
+We also think the question is worth asking beyond our own project. If a wordless breath-pacing sound works, it could be a simple, free tool for music therapy: no instructor, and nothing more than a phone. For cognitive studies, our design separates two things that are often mixed together, feeling better and performing better, and other researchers can reuse it with other sounds, other ragas or other groups of people. Even a mixed result is useful, because it shows where this kind of sound helps and where it does not.
+
+%-------------------------------------------------------------
+\section{Hypotheses}
+
+Each hypothesis compares the paced-sound break (BREATHEBEAT) with the silent break in the same person.
+
+\begin{enumerate}[label=\textbf{H\arabic*.}]
+\item \textbf{Performance.} After the paced-sound break, people recover more on the tasks: a larger speed-up and accuracy gain on the Stroop test and on the arithmetic task.
+\item \textbf{How people feel.} After the paced-sound break, people report a larger drop in stress and in how hard the task felt, and rate the break as more relaxing.
+\item \textbf{Attention.} During the paced-sound break, people keep their attention on their breathing more than during silence.
+\end{enumerate}
+
+\noindent In both breaks people were asked to close their eyes and breathe slowly. The comparison therefore tests the pacing sound itself, not breathing against not breathing.
+
+%-------------------------------------------------------------
+\section{Existing research}
+
+Table~\ref{tab:lit} lists the sources we reviewed and what we took from each. Two of them shaped the final design directly. Gummidela et al.\ showed that a continuous change in volume, louder on the in-breath and softer on the out-breath, can guide breathing without counts, and that people felt relaxed afterwards. Burns et al.\ argued that audio should be built around the breathing pace from the start rather than laid over existing music. Our final track follows both ideas: it swells and fades with each breath and is built on a fixed 10-second cycle. The 10-second cycle (6 breaths a minute) is also the pace at which, according to Russo et al., heart-rate variability is greatest in slow-breathing studies, which is why we chose it.
+
+The studies on Indian music supported our original raga plan. They report better attention, lower anxiety and calmer autonomic responses after listening, especially to calm, non-percussive music. They test listening, not paced breathing, so they are background for this study rather than direct support. Tiwari's review links music with pranayama and claims that music helps keep a steady breathing pattern, but it is descriptive and runs no experiment. The Insight Timer guide states plainly that no trial has yet tested raga listening itself.
+
+\begin{table}[!htbp]
+\centering\small
+\caption{Sources reviewed. The Indian-music findings are as summarised in our Sprint~3 literature review.}
+\label{tab:lit}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.6cm}LL}
+\toprule
+\textbf{Source} & \textbf{Main point} & \textbf{Use in our study}\\
+\midrule
+Gummidela et al.\ (2021) & Continuous volume cues guide breathing in game-based relaxation; people report relaxation afterwards & The track swells and fades with each breath, with no voice\\
+Burns et al.\ (2013) & Audio composed around the breathing pace works better than a cue added to existing music & The track is built on a 10-second breath cycle\\
+Nagarajan et al.\ (2015a) & Raga listening improved attention and concentration in college students & Background for the original raga plan\\
+Nagarajan et al.\ (2015b) & Indian music lowered anxiety and shifted heart autonomic measures & Background for the original raga plan\\
+Ubrangala et al.\ (2022) & Indian music changed stress and autonomic measures; calm, non-percussive sound linked to calmer responses & Background; we did not measure physiology\\
+Russo et al.\ (2017) & Review of slow breathing in healthy adults; heart-rate variability is greatest at about 6 breaths a minute & Reason for the 6-breaths-a-minute pace\\
+Tiwari (2024) & Descriptive review: ragas by time of day and season; music helps keep a steady breath during pranayama & Rationale for pairing the breath with sound\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent In our literature search we did not find a study that compared sound-paced breathing with silent rest after a mental task, measuring both feelings and performance. That gap matters for two fields. For music therapy, it gives a first, simple test of whether a wordless, breath-paced sound adds something that silence does not. For cognitive research, it offers a small, repeatable design (the same person does both breaks, with the same tasks) that later studies can reuse with other sounds, ragas or groups, and a first set of numbers to plan them with.
+
+%-------------------------------------------------------------
+\section{Experiment methodology}
+\paragraph{How the study took shape.} The project changed along the way. Our proposal planned three groups of participants (silent rest, a spoken counting guide, and a melody in Raga Bhupali over a tanpura drone with a 4-2-6 breath). In Sprint 3 we built that melody as a synthetic engine in the browser, but the sound was rough and did not feel calming. For the final study we kept two conditions and tested them within the same person: silent rest, and a two-minute breathing track with a 4-second in-breath and a 6-second out-breath. The final track is not a raga, so this report makes no claims about ragas.
+\paragraph{Design.} A within-subject experiment with two conditions. Every participant did both breaks in a single session of about 15 minutes, on their own phone or laptop, through a web app we built. The order of the two breaks was randomised for each person. Because each person is compared with themselves, differences between people do not affect the comparison.
+
+\paragraph{Participants.} 42 sessions were recorded and 41 people completed both breaks. They were aged 19 to 23 (mean 20.2). Of these, 34 take the Music Workshop course. 15 listen to music for under 30 minutes a day, 19 for 30 minutes to 2 hours and 7 for more than 2 hours. 5 had never tried breathing exercises, 32 had tried them a few times and 4 practise regularly. One person who completed only one break was excluded.
+
+\paragraph{The two breaks.} Both lasted exactly 120 seconds, could not be skipped, and ended with the same soft chime.
+\begin{itemize}
+\item \textbf{Silence:} eyes closed, breathe slowly at your own pace.
+\item \textbf{BREATHEBEAT:} eyes closed, breathe in with the first sound (4 seconds) and out with the second (6 seconds), for 12 breaths, which is 6 breaths a minute. The app recorded whether the sound was muted; one person muted it.
+\end{itemize}
+
+\paragraph{The sound.} BREATHEBEAT is a track titled ``Music For 4 6 Breathing Earth Tuning Binaural Perfect 5th'', trimmed to two minutes. It has no melody, rhythm or words: it is a continuous, soft drone whose loudness swells and fades about every 10 seconds, matching a 4-second in-breath and a 6-second out-breath. A frequency check of the audio shows a low tone near 150 Hz with a second tone a perfect fifth above it (about 228 Hz, a 3:2 ratio), much like the Sa and Pa of a tanpura, and slightly different pitches in the left and right ears (the ``binaural'' effect, a couple of hertz apart). We chose the track for its breath pacing.
+
+\paragraph{Procedure.} Each session started with a short intake form (age, Music Workshop enrolment, daily music listening, experience with breathing exercises). Then the following block was run twice, once for each break:
+\begin{enumerate}
+\item A 45-second timed mental arithmetic task, used to tire people out.
+\item A 12-trial Stroop test: 6 trials where the colour word matches its ink, 6 where it does not.
+\item Ratings of current stress and of how hard the arithmetic felt.
+\item The 120-second break.
+\item The arithmetic task and the Stroop test again, the same two ratings, then ratings of the break itself.
+\end{enumerate}
+At the end, people chose which break left them more refreshed, and whether they usually prefer sound or silence when they want to calm down.
+
+\paragraph{Data handling and analysis.} Each break was stored as one row in a Google Sheet, and the two rows of a session were paired by a shared session ID. A Python script read the sheet, applied the exclusions and produced every figure in this report. For every measure we took each person's result after the paced-sound break and subtracted their result after the silent break, so each person is compared only with themselves. We then asked how likely it is that differences this large would appear just by luck if the two breaks were really equal. Because we looked at nine measures, a few will look good by luck alone, so we made this check stricter and report the stricter number. We call a result clear when it is very unlikely to be luck, and tentative when it is only suggestive. The forced-choice questions were compared against an even 50:50 split. We also checked whether it mattered which break came first.
+
+\paragraph{Exclusions.} Stroop sessions with a mean reaction time above 3 seconds were treated as interrupted and dropped (3 sessions, all in the silence condition, at 10.6, 3.1 and 3.3 seconds), leaving 38 people for the Stroop measures.
+
+%-------------------------------------------------------------
+\section{Metrics used}
+
+Every change score is signed so that a positive number means the person did better after the break.
+
+\begin{table}[!htbp]
+\centering\small
+\caption{Outcome measures.}
+\label{tab:metrics}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{2.3cm}L}
+\toprule
+\textbf{Measure} & \textbf{Type} & \textbf{How it is computed}\\
+\midrule
+Stroop speed-up & Performance & Mean reaction time before the break minus after (ms)\\
+Stroop interference reduction & Performance & Interference (incongruent minus congruent reaction time) before minus after (ms)\\
+Stroop accuracy change & Performance & Accuracy after minus before (percentage points)\\
+Arithmetic accuracy change & Performance & Accuracy after the break minus accuracy in the stressor task (percentage points)\\
+Arithmetic speed-up & Performance & Mean response time in the stressor task minus after the break (ms)\\
+Stress drop & Self-report & Stress before the break minus after (1 to 4)\\
+Difficulty drop & Self-report & Task difficulty before the break minus after (1 to 4)\\
+Relaxation & Self-report & How relaxing the break felt, rated once after it (1 to 4)\\
+Attention on breath & Self-report & Where the mind was during the break, rated once after it (1 to 4)\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All ratings used four options, each describing a state the participant could recognise, with no neutral choice. For example, stress ranged from ``Relaxed: no tension at all'' to ``Stressed: I feel rushed or on edge'', and attention ranged from ``Mostly elsewhere: other thoughts or waiting for it to end'' to ``Stayed on my breathing almost the whole time''. The final comparison was a forced choice between the two breaks.
+
+%-------------------------------------------------------------
+\section{Experiment outcomes}
+
+Table~\ref{tab:results} gives every result, grouped into how people felt and how they performed. The last column says in plain words what the data shows. Figure~\ref{fig:verdict} shows how big each difference was.
+
+\begin{table}[!htbp]
+\centering\small
+\renewcommand{\arraystretch}{1.3}
+\caption{Results, BREATHEBEAT minus silence, for the same people. ``Clear'' means the difference passed a strict check that allows for comparing nine measures; this was true for relaxation and attention only.}
+\label{tab:results}
+\begin{tabular}{l c c c c l}
+\toprule
+\textbf{Measure} & $n$ & \textbf{Silence} & \textbf{BREATHEBEAT} & \textbf{Difference} & \textbf{Result}\\
+\midrule
+\multicolumn{6}{l}{\emph{How people felt}}\\[2pt]
+Relaxation (1--4) & 41 & 2.93 & 3.49 & $+0.56$ & \textbf{Clear difference}\\
+Attention on breath (1--4) & 41 & 2.76 & 3.27 & $+0.51$ & \textbf{Clear difference}\\
+Stress drop (1--4) & 41 & 0.02 & 0.34 & $+0.32$ & Leans towards BREATHEBEAT\\
+Difficulty drop (1--4) & 41 & 0.05 & 0.34 & $+0.29$ & Leans towards BREATHEBEAT\\
+\midrule
+\multicolumn{6}{l}{\emph{How people performed}}\\[2pt]
+Arithmetic accuracy (points) & 41 & $-0.2$ & 1.1 & $+1.3$ & Not much difference\\
+Arithmetic speed-up (ms) & 41 & 68 & 133 & $+65$ & Not much difference\\
+Stroop accuracy (points) & 38 & 2.4 & 0.9 & $-1.5$ & Not much difference\\
+Stroop speed-up (ms)$^{*}$ & 38 & 270 & 95 & $-175$ & Not much difference\\
+Interference reduction (ms) & 38 & $-149$ & 111 & $+260$ & Not much difference\\
+\bottomrule
+\end{tabular}
+\\[4pt]
+{\footnotesize $^{*}$ Silence started from slower Stroop times; see H1.}
+\end{table}
+
+\noindent The pattern is consistent: the paced sound changed how the break \emph{felt}, and it did not change performance much in either direction. For the two ``leans towards'' rows, most people gave the same rating before and after, and with only 41 people a small difference like this is hard to separate from ordinary variation. The same is true of the ``not much difference'' rows: a group this size can only reveal large effects, so small ones, if they exist, would not show up. A larger group would settle these questions.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{0_verdict.png}
+\caption{Size of the difference for each measure, with the range we are reasonably sure about. Right of zero favours BREATHEBEAT; filled dots are the measures that looked clear before the stricter check.}
+\label{fig:verdict}
+\end{figure}
+
+\subsection*{H1, performance: not supported}
+
+None of the five performance measures showed a clear difference between the breaks, and the differences were small, so we have little confidence either way. The Stroop speed-up even leaned towards silence, but Figure~\ref{fig:prepost} explains why. Before the silent break, people were slower on the Stroop (about 1,370 ms against 1,170 ms), and after both breaks they ended at about the same speed (about 1,090 ms). The larger speed-up after silence therefore reflects a slower starting point, not a better break.
+
+More simply, our Stroop test was too easy to show a difference. It was short (12 trials), it was not timed, and many people scored 100\%, so there was little room to improve. Speeds in the second attempt matched after both breaks because people had by then learned the pattern, so the second test measured practice at least as much as recovery. Figure~\ref{fig:paired} shows people moving in both directions. The Stroop results should therefore not be read as evidence that the breaks do or do not affect focus.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{2_pre_post.png}
+\caption{Mean scores before and after each break ($\pm$ standard error). Each panel has its own scale.}
+\label{fig:prepost}
+\end{figure}
+
+\subsection*{H2, how people feel: partly supported}
+
+Relaxation was clearly higher after the paced-sound break (3.49 against 2.93), and this held up after the stricter check. Stress fell by 0.32 points more and task difficulty by 0.29 points more after the paced-sound break, but these two results could still be coincidence, so we treat them as hints only. On the 4-point scales, most people gave the same rating before and after the break: on stress, 23 of 41 did not change. When asked directly, 28 of 41 people said the paced-sound break left them more refreshed, which is more than a coin flip would give (about 3 chances in 100 of this happening by luck), as shown in Figure~\ref{fig:subjective}.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{1_paired_gains.png}
+\caption{Every participant's change after each break. Each grey line joins one person's silence result (orange) to their BREATHEBEAT result (blue); diamonds are means.}
+\label{fig:paired}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{3_subjective.png}
+\caption{Relaxation ratings (left), which break felt more refreshing (middle), and the usual preference for calming down (right).}
+\label{fig:subjective}
+\end{figure}
+
+\subsection*{H3, attention: supported}
+
+During the paced-sound break, attention stayed on the breath more (3.27 against 2.76), and this also held up after the stricter check. How well people's attention stayed on the breath was essentially unrelated to how much they gained in relaxation or stress, so we cannot say that attention is what produced the relaxation.
+
+\subsection*{Order and other checks}
+
+Order mattered for one result (Figure~\ref{fig:order}). For difficulty drop, the BREATHEBEAT advantage was $+0.56$ when silence came first ($n = 25$) but $-0.12$ when BREATHEBEAT came first ($n = 16$); a gap this big would happen by luck only about 2 times in 100. Relaxation and stress did not depend on order. Random assignment left the groups uneven at 25 to 16, so the difficulty result is partly an order effect.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{4_order_effect.png}
+\caption{Each measure split by whether that break was done first or second.}
+\label{fig:order}
+\end{figure}
+
+\noindent We also ran exploratory checks on small groups, which should be treated as leads only. The 7 people who do not take Music Workshop gained much more relaxation than the 34 who do (1.29 against 0.41), and a larger drop in difficulty (1.00 against 0.15). Daily music listening and breathing-practice experience were not related to any gain. People's usual preference for sound or silence matched the break they found more refreshing for 31 of 41 people, which is very unlikely to be chance. This suggests that part of that choice reflects an existing preference rather than the break itself, which fits the feedback described below.
+
+%-------------------------------------------------------------
+\section{Correlating with concepts covered in class}
+
+Several ideas from the course shaped the design, and the results speak back to some of them.
+
+\begin{table}[H]
+\centering\small
+\caption{Course concepts, how they shaped the study, and what the results show.}
+\label{tab:class}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{4.3cm}LL}
+\toprule
+\textbf{Concept from class} & \textbf{In the design} & \textbf{In the results}\\
+\midrule
+Nada Yoga: breath control is central (7 Aug) & The break is paced breathing at 6 breaths a minute; we measured attention on the breath & The paced sound kept attention on the breath better than silence\\
+Daily tanpura listening with eyes closed (class practice) & Both breaks were done with eyes closed, with the sound as the only thing to attend to & The sound-guided break felt more relaxing than the silent one, in line with the idea that a steady sound gives the mind something to rest on; ours paced the breath rather than being a drone, so the link is close but not exact\\
+Music as an instant stress reliever (29 Sep) & A stress rating before and after each break & Stress fell more after the paced break ($+0.32$), but we cannot be confident this was not chance\\
+Concentrating with music is hard for musicians, because they start analysing it & Music Workshop enrolment recorded at intake & Music Workshop students gained less relaxation than others (0.41 against 1.29). This fits the idea, but only 7 people were non-students, so there is not enough data to support it\\
+Responses to music depend on liking, familiarity and conditioning & Listening habits, breathing practice and calming preference recorded & Calming preference predicted the ``more refreshing'' choice; listening habits did not predict gains\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent The clearest link is with Nada Yoga. The course stressed that attention to the breath is the core of the practice, and a sound that marks each breath is exactly what kept attention there in our data. The second link is our daily class practice of listening to the tanpura with eyes closed: in both our breaks people also closed their eyes, and the break with a steady sound to follow felt more relaxing than the one without. The Music Workshop result is consistent with the remark that trained listeners tend to analyse music rather than rest with it. But it rests on only seven non-students, and enrolment is a rough stand-in for musical training, so there is not enough data to support the claim; it is a question for future work.
+
+%-------------------------------------------------------------
+\section{Feedback from participants}
+
+Participants could leave a comment at the end of the session. Fourteen of the 41 did. Six were positive about the sound or the study, 1 was critical, 2 were mildly negative.
+
+\paragraph{What worked.} Several people said the paced sound helped them concentrate and breathe in time. One wrote that they ``loved how [you] tried to create sync that helped to concentrate''. Another said the break with sound felt good because they could breathe in and out along with it, while in silence ``thoughts keep coming into my mind''. A third said that with the sound ``it went with the phase'' of the breath. One said the break helped them focus, and another called the study well made and liked its simplicity.
+
+\paragraph{Mildly negative remarks.} One person found the silent break too long, and one person said they would have felt more relaxed if the sound had been more peaceful.
+\paragraph{The most useful criticism.} One participant pointed out that the question ``which break do you prefer when stressed?'' has no single answer. They preferred the music break, but wrote that when the pressure is at its peak they need silence, because there is already so much going on in the brain. So the best kind of break depends on the person, the situation and how stressed they are at that moment. A single forced choice cannot capture this, and it is consistent with our finding that people's usual preference predicted which break they called more refreshing.
+
+%-------------------------------------------------------------
+\section{Limitations and things that did not go as expected}
+
+\begin{itemize}
+\item \textbf{Order.} Randomisation left 25 people starting with silence and 16 with BREATHEBEAT, and order affected the difficulty result. The next study should split participants exactly in half.
+\item \textbf{The Stroop test was too easy} (see H1), so we cannot say anything firm about focus or performance.
+\item \textbf{Coarse scales.} Four-point ratings left most people unchanged on stress and difficulty, and most people began the session fairly calm, so there was little room for stress to fall.
+\item \textbf{One size does not fit all.} Whether sound or silence helps more depends on a person's preference, context and stress level. Our results describe the average, and some individuals clearly did better with silence.
+\end{itemize}
+
+%-------------------------------------------------------------
+\section{Conclusion and what we would suggest}
+
+\subsection*{Final conclusion}
+
+A sound that paces the breath made a two-minute break feel more relaxing and kept attention on the breath better than silent rest. We are fairly confident of these two results: they were large enough to pass our strictest check, and most people who changed moved in the same direction. We are much less sure about the smaller gains in stress and difficulty. We found no clear effect on Stroop or arithmetic, but given the Stroop problems described under H1 this means ``not shown'' rather than ``shown not to work''. In terms of our hypotheses, H1 (performance) was not supported, H2 (feelings) was partly supported through relaxation, and H3 (attention) was supported.
+
+\subsection*{What the data lets us suggest}
+
+\begin{itemize}
+\item A breath-pacing sound is worth offering as a way to relax and keep attention on the breath during a short break. It did not make test performance worse.
+\item We should not claim that it improves focus or test scores. Our data cannot show that.
+\item It is best offered as a choice next to silence, not as a replacement, because people differ and some prefer silence when they are very stressed.
+\end{itemize}
+
+\subsection*{How the project can be extended}
+
+\begin{itemize}
+\item Repeat the study with an exactly balanced order and more participants, including more people from outside the Music Workshop course, where our early hint was strongest.
+\item Use a harder, timed focus test, so that recovery can actually show up.
+\item Add more kinds of sound: the same 4-6 breathing pattern with a tanpura or a raga, and a sound without breath pacing, to learn whether the benefit comes from the pacing or from sound in general.
+\item Ask people when and why they would choose sound or silence, and let them choose, to learn who benefits from which kind of break.
+\item Try longer breaks, repeated sessions over several days, and music-therapy or classroom settings.
+\end{itemize}
+
+%-------------------------------------------------------------
+\section{Individual contributions}
+
+\begin{table}[H]
+\centering\small
+\caption{What each team member contributed.}
+\label{tab:contrib}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.4cm}L}
+\toprule
+\textbf{Member} & \textbf{Contributions}\\
+\midrule
+Parth Dhodapkar (2024111009) & Built the web platform the study runs on: the interface, the breathing visualiser, and the Stroop and arithmetic tests, including their design (12 Stroop trials split evenly between matching and clashing words, the 45-second timed arithmetic task and its question types). Set up the Google Sheet, the Google Apps Script that receives responses, and the posting of every session to the sheet. Deployed the study on GitHub Pages. Wrote the analysis and plotting scripts that produce every statistic and figure in this report. Wrote the first drafts of this report and of the final presentation. Helped with conducting the survey in-class, as well as incorporated feedback from external participants, and helped in data cleaning.\\
+\addlinespace
+Atharva Kulkarni (2023101072) & Reviewed the literature on sound-guided breathing and Indian music in Sprint~3, which forms the basis of the existing-research section. Implemented the move to the final within-subject design: the silent-rest condition, the random order of the two breaks and the session flow. Wrote the rating questions and their descriptive options, and the matching data columns. Added the recorded 4-6 breathing track, trimmed it and the break to 2 minutes, replaced the musical-training question with daily listening, and replaced the fatigue rating with task difficulty. Refined final report and PPT.\\
+\addlinespace
+Sri Harshit K (2024102022) & Analysed early-morning ragas (Bhairav, Lalit, Todi, Bilaskhani Todi) for the original raga plan in Sprint~3. Made the before-break and after-break tasks identical by adding the arithmetic task after each break and removing the warm-up Stroop test. Refined this report and the final presentation. Helped Parth with many of his commits (as in, they both worked together). Helped with conducting the survey in-class, as well as incorporated feedback from external participants, and helped in data cleaning. Helped with data analysis and plotting.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%-------------------------------------------------------------
+\section*{References}
+\small
+\begin{enumerate}[label={[\arabic*]},leftmargin=*]
+\item V.~N.~C. Gummidela, D.~R. da Cunha Silva and R. Gutierrez-Osuna, ``Evaluating the role of breathing guidance on game-based interventions for relaxation training,'' \emph{Frontiers in Digital Health}, vol.~3, 760268, 2021.
+\item D.~S. Burns, M.~R. Drews and J.~S. Carpenter, ``Description of an audio-based paced respiration intervention for vasomotor symptoms,'' \emph{Music and Medicine}, vol.~5, no.~1, pp.~8--14, 2013.
+\item K. Nagarajan, T.~M. Srinivasan and N.~H. Ramarao, ``Immediate effect of listening to Indian raga on attention and concentration in healthy college students: a comparative study,'' \emph{Journal of Health Research and Reviews}, vol.~2, no.~3, p.~103, 2015.
+\item K. Nagarajan, T.~M. Srinivasan and N.~H. Ramarao, ``Immediate effect of Indian music on cardiac autonomic control and anxiety: a comparative study,'' \emph{Heart India}, vol.~3, no.~4, pp.~93--100, 2015.
+\item K.~K. Ubrangala et al., ``Effect of Indian music as an auditory stimulus on physiological measures of stress, anxiety, cardiovascular and autonomic responses in humans,'' \emph{European Journal of Investigation in Health, Psychology and Education}, vol.~12, no.~10, pp.~1535--1558, 2022.
+\item M.~A. Russo, D.~M. Santarelli and D. O'Rourke, ``The physiological effects of slow breathing in the healthy human,'' \emph{Breathe}, vol.~13, no.~4, pp.~298--309, 2017.
+\item D. Tiwari, ``Importance of music and ragas in human life,'' \emph{Educational Administration: Theory and Practice}, vol.~30, no.~1, pp.~3670--3676, 2024.
+\item Insight Timer, ``Raga meditation,'' \url{https://insighttimer.com/techniques/sound-healing/raga-meditation}, accessed November 2026.
+\end{enumerate}
+
+\end{document}
